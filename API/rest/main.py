@@ -29,7 +29,7 @@ app.include_router(tables_router, prefix="/api/v1")
 app.include_router(evaluate_router, prefix="/api/v1")
 
 # GraphQL (Strawberry)
-graphql_app = GraphQLRouter(schema, graphiql=True)
+graphql_app = GraphQLRouter(schema, graphql_ide="graphiql")
 app.include_router(graphql_app, prefix="/graphql")
 
 
