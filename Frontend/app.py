@@ -92,9 +92,16 @@ st.set_page_config(page_title="Moteur de Règles", layout="wide", page_icon="⚖
 st.sidebar.title("⚖️ Moteur de Règles")
 page = st.sidebar.radio(
     "Menu",
-    ["Mes tables", "Nouvelle table", "Gérer les règles", "Simuler une décision"],
+    ["Mes tables", "Nouvelle table", "Gérer les règles", "Simuler une décision", "Agent IA"],
     label_visibility="collapsed",
 )
+
+# ── Outils exposés dans la sidebar (page Agent) ───────────────────────────────
+if page == "Agent IA":
+    st.sidebar.divider()
+    st.sidebar.markdown("**OUTILS EXPOSÉS**")
+    for tool in ["evaluate_table", "list_tables", "get_table_schema", "create_rule"]:
+        st.sidebar.markdown(f"🔧 `{tool}`")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE — Mes tables
@@ -335,3 +342,124 @@ elif page == "Simuler une décision":
         else:
             detail = resp.json().get("detail", "Erreur inconnue.")
             st.error(f"Impossible d'évaluer : {detail}")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE — Agent IA
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "Agent IA":
+    # ── CSS pour les bulles ──────────────────────────────────────────────────
+    st.markdown("""
+    <style>
+    .bubble-agent  { background:#fce4ec; border-radius:12px; padding:12px 16px; margin:8px 0; }
+    .bubble-user   { background:#e8f5e9; border-radius:12px; padding:12px 16px; margin:8px 0;
+                     text-align:right; }
+    .bubble-tool   { background:#f3e5f5; border-radius:8px; padding:8px 12px; margin:4px 0;
+                     font-family:monospace; font-size:0.85em; }
+    .tool-name     { font-weight:bold; color:#7b1fa2; }
+    </style>""", unsafe_allow_html=True)
+
+    col_title, col_status = st.columns([4, 1])
+    with col_title:
+        st.title("Agent IA — One Agent")
+    with col_status:
+        st.markdown(
+            "<div style='text-align:right; padding-top:18px;'>"
+            "<span style='background:#e8f5e9; color:#2e7d32; border-radius:20px;"
+            " padding:4px 12px; font-size:0.85em;'>⊙ Connecté</span></div>",
+            unsafe_allow_html=True
+        )
+
+    # ── État de la conversation ──────────────────────────────────────────────
+    if "agent_messages" not in st.session_state:
+        st.session_state.agent_messages = []          # [{role, content}]
+    if "agent_display" not in st.session_state:
+        st.session_state.agent_display = []           # [{type, content}] pour l'affichage
+
+    # ── Message de bienvenue ─────────────────────────────────────────────────
+    chat_container = st.container(border=True)
+    with chat_container:
+        if not st.session_state.agent_display:
+            st.markdown(
+                "<div class='bubble-agent'>"
+                "<b>🤖 Agent DMN</b> — Bonjour ! Je peux interroger vos tables de décision, "
+                "créer des règles ou évaluer des scénarios. Comment puis-je vous aider ?"
+                "</div>",
+                unsafe_allow_html=True
+            )
+
+        for item in st.session_state.agent_display:
+            if item["type"] == "user":
+                st.markdown(
+                    f"<div class='bubble-user'>{item['content']}</div>",
+                    unsafe_allow_html=True
+                )
+            elif item["type"] == "agent":
+                st.markdown(
+                    f"<div class='bubble-agent'><b>🤖 Agent DMN</b> — {item['content']}</div>",
+                    unsafe_allow_html=True
+                )
+            elif item["type"] == "tool":
+                call = item["content"]
+                input_str = ", ".join(f"{k}:{v}" for k, v in call["input"].items())
+                result_str = str(call["result"])
+                if len(result_str) > 120:
+                    result_str = result_str[:120] + "…"
+                st.markdown(
+                    f"<div class='bubble-tool'>"
+                    f"<span class='tool-name'>{call['name']}({input_str})</span><br>"
+                    f"→ {result_str}"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+
+    # ── Formulaire de saisie ─────────────────────────────────────────────────
+    st.markdown("&nbsp;", unsafe_allow_html=True)
+    col_input, col_btn = st.columns([5, 1])
+    with col_input:
+        user_input = st.text_input(
+            "Message",
+            placeholder="Posez une question sur vos tables DMN…",
+            label_visibility="collapsed",
+            key="agent_input"
+        )
+    with col_btn:
+        send = st.button("✈ Envoyer", use_container_width=True, type="primary")
+
+    if st.button("🗑️ Réinitialiser la conversation", use_container_width=True):
+        st.session_state.agent_messages = []
+        st.session_state.agent_display = []
+        st.rerun()
+
+    if send and user_input.strip():
+        # Ajout du message utilisateur
+        st.session_state.agent_messages.append({"role": "user", "content": user_input.strip()})
+        st.session_state.agent_display.append({"type": "user", "content": user_input.strip()})
+
+        with st.spinner("L'agent réfléchit…"):
+            resp = requests.post(
+                f"{API_BASE}/agent/chat",
+                json={"messages": st.session_state.agent_messages},
+                timeout=60
+            )
+
+        if resp.ok:
+            data = resp.json()
+            # Affiche les appels d'outils
+            for tc in data.get("tool_calls", []):
+                st.session_state.agent_display.append({"type": "tool", "content": tc})
+            # Réponse finale
+            agent_text = data.get("response", "")
+            if agent_text:
+                st.session_state.agent_messages.append(
+                    {"role": "assistant", "content": agent_text}
+                )
+                st.session_state.agent_display.append(
+                    {"type": "agent", "content": agent_text}
+                )
+        else:
+            detail = resp.json().get("detail", "Erreur inconnue.")
+            st.session_state.agent_display.append(
+                {"type": "agent", "content": f"❌ Erreur : {detail}"}
+            )
+
+        st.rerun()
