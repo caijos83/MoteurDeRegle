@@ -1,0 +1,33 @@
+{
+  "id": "896cf3bd-757d-48e4-9c83-8cbd712b0a14",
+  "name": "vaccin",
+  "hit_policy": "FIRST",
+  "columns": [
+    {
+      "name": "age",
+      "type": "number",
+      "role": "input"
+    },
+    {
+      "name": "maladie",
+      "type": "number",
+      "role": "input"
+    },
+    {
+      "name": "des",
+      "type": "number",
+      "role": "output"
+    }
+  ],
+  "rules": [
+    {
+      "conditions": {
+        "age": "> 17.0",
+        "maladie": "> 0.0"
+      },
+      "output": {
+        "des": "5.0"
+      }
+    }
+  ]
+}
