@@ -167,7 +167,7 @@ def render() -> None:
     # ── Breadcrumb ───────────────────────────────────────────────────────────
     st.markdown(
         '<p style="font-size:.82rem;color:#94a3b8;margin-bottom:6px;font-weight:500;">'
-        '<a href="?page=tables" style="color:#2563eb;text-decoration:none;">Tables</a>'
+        '<a href="?page=tables" target="_self" style="color:#2563eb;text-decoration:none;">Tables</a>'
         ' &nbsp;/&nbsp; Nouvelle table</p>',
         unsafe_allow_html=True,
     )

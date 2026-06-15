@@ -34,3 +34,6 @@ Thumbs.db
 
 # Archives
 *.zip
+
+# Données locales TerminusDB
+.data/

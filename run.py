@@ -43,6 +43,15 @@ def open_app():
     else:
         webbrowser.open(url)
 
+def _stop(api, ui):
+    print("\nArrêt en cours...")
+    for p in (api, ui):
+        try:
+            p.terminate()
+            p.wait(timeout=5)
+        except Exception:
+            p.kill()
+
 if __name__ == "__main__":
     print("Démarrage de l'API...")
     api = subprocess.Popen(API_CMD, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
@@ -56,11 +65,9 @@ if __name__ == "__main__":
     print("Ouverture de l'application...")
     open_app()
 
-    print("Application lancée. Fermez cette fenêtre pour tout arrêter.")
+    print("Application lancée. Appuyez sur Ctrl+C pour tout arrêter.")
     try:
-        ui.wait()
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
-        pass
-    finally:
-        api.terminate()
-        ui.terminate()
+        _stop(api, ui)
