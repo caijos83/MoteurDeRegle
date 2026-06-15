@@ -1,0 +1,23 @@
+{
+  "id": "c088eb3a-6907-4ba9-87f0-9eb284581c67",
+  "name": "NoteEtu",
+  "hit_policy": "FIRST",
+  "columns": [
+    {
+      "name": "handi",
+      "type": "boolean",
+      "role": "input"
+    },
+    {
+      "name": "note",
+      "type": "number",
+      "role": "input"
+    },
+    {
+      "name": "validé ",
+      "type": "number",
+      "role": "output"
+    }
+  ],
+  "rules": []
+}
