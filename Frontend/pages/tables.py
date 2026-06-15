@@ -4,7 +4,14 @@ from utils.api import api_get, policy_badge_html, API_BASE
 
 
 def render() -> None:
-    tables = api_get("/tables") or []
+    import time
+    result = api_get("/tables")
+    if result is None:
+        with st.spinner("Connexion à l'API en cours…"):
+            time.sleep(1)
+        st.rerun()
+        return
+    tables = result
 
     # ── Header ────────────────────────────────────────────────────────────────
     col_title, col_btn = st.columns([7, 2])

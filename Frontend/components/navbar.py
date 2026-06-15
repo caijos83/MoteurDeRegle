@@ -15,7 +15,7 @@ def render_navbar(current_page: str) -> None:
 
     if context:
         tabs_html = (
-            f'<a href="?page=tables" class="nav-link">Tables</a>'
+            f'<a href="?page=tables" target="_self" class="nav-link">Tables</a>'
             f'<span class="nav-link nav-active">{context}</span>'
         )
     else:
@@ -25,7 +25,7 @@ def render_navbar(current_page: str) -> None:
             if key == active:
                 tabs_html += f'<span class="nav-link nav-active">{label}</span>'
             else:
-                tabs_html += f'<a href="?page={key}" class="nav-link">{label}</a>'
+                tabs_html += f'<a href="?page={key}" target="_self" class="nav-link">{label}</a>'
 
     # ── Tout est dans un seul bloc <style> + HTML ──────────────────────────
     # On évite les style= inline complexes sur le div racine qui causent
@@ -107,7 +107,7 @@ div.stButton > button {{
 </style>
 
 <div class="dmn-navbar">
-    <a class="dmn-logo" href="?page=tables">DMN<span>Light</span></a>
+    <a class="dmn-logo" href="?page=tables" target="_self">DMN<span>Light</span></a>
     <div class="dmn-tabs">{tabs_html}</div>
     <div class="dmn-avatar">GP</div>
 </div>
