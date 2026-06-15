@@ -1,6 +1,9 @@
+import os
 import requests
+from dotenv import load_dotenv
 
-API_BASE = "http://localhost:8000/api/v1"
+load_dotenv()
+API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
 TYPE_OPTIONS   = ["Nombre", "Texte", "Oui / Non"]
 TYPE_TO_API    = {"Nombre": "number", "Texte": "text", "Oui / Non": "boolean"}
