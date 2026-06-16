@@ -36,7 +36,7 @@ class TerminusDBClient:
     def list_tables(self) -> list[dict]:
         if self._use_fallback:
             return [
-                json.loads(f.read_text())
+                json.loads(f.read_text(encoding="utf-8-sig", errors="replace"))
                 for f in _FALLBACK_DIR.glob("*.json")
             ]
         # TODO: requête TerminusDB WOQL pour lister les documents Table
