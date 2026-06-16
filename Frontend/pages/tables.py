@@ -28,7 +28,7 @@ def render() -> None:
     # ── Filter ────────────────────────────────────────────────────────────────
     col_chk, col_sel = st.columns([0.3, 5])
     with col_chk:
-        st.checkbox("", key="select_all", label_visibility="collapsed")
+        st.checkbox("Tout sélectionner", key="select_all", label_visibility="collapsed")
     with col_sel:
         policy_filter = st.selectbox(
             "filter",

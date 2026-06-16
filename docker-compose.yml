@@ -1,0 +1,8 @@
+services:
+  terminusdb:
+    image: terminusdb/terminusdb-server:latest
+    container_name: dmn_terminusdb
+    ports:
+      - "6363:6363"
+    environment:
+      TERMINUSDB_ADMIN_PASS: root
