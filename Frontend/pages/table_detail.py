@@ -59,7 +59,7 @@ def render(table_id: str) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" style="color:#4f46e5; text-decoration:none;">Tables</a>'
+        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
         f' &rsaquo; {table["name"]}</p>',
         unsafe_allow_html=True,
     )
