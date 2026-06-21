@@ -29,6 +29,17 @@ def api_get(path):
         return None
 
 
+def fmt_date(raw) -> str:
+    if not raw:
+        return "—"
+    try:
+        from datetime import datetime
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        return dt.strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        return "—"
+
+
 def fmt_condition(raw: str) -> str:
     if not raw or raw == "—":
         return "—"
