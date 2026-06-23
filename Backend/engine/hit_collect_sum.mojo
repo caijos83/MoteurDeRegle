@@ -2,25 +2,28 @@
 Hit Policy COLLECT SUM — somme les outputs numériques de toutes les règles qui matchent.
 """
 
-from collections import Dict, List
-from .evaluator import match_rule
+from std.collections import Dict, List
+
+from evaluator import Rule, match_rule
 
 
 fn evaluate_collect_sum(
-    rules: List[Dict[String, String]],
+    rules: List[Rule],
     inputs: Dict[String, String],
-    output_column: String
-) -> Float64:
+    output_columns: List[String],
+) raises -> Tuple[Float64, Int]:
     """
     Parcourt toutes les règles.
-    Somme les valeurs numériques de output_column pour chaque règle qui matche.
+    Pour chaque règle qui matche, additionne les valeurs des colonnes de sortie.
+    Retourne (total, nombre de règles matchées).
     """
     var total: Float64 = 0.0
-    for rule in rules:
-        let conditions = rule["conditions"]
-        if match_rule(conditions, inputs):
-            let output = rule["output"]
-            if output_column in output:
-                # TODO: convertir output[output_column] en Float64
-                total += 0.0
-    return total
+    var matched_count: Int = 0
+    for i in range(len(rules)):
+        if match_rule(rules[i].conditions, inputs):
+            matched_count += 1
+            for j in range(len(output_columns)):
+                var col = output_columns[j]
+                if col in rules[i].output:
+                    total += atof(rules[i].output[col])
+    return (total, matched_count)
