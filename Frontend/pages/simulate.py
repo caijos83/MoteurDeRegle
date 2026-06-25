@@ -64,20 +64,21 @@ def render(table_id: str | None = None) -> None:
         st.info("Aucune table disponible.")
         return
 
-    table_map = {t["name"]: t for t in tables}
     default_idx = 0
     if table_id:
         for i, t in enumerate(tables):
             if t["id"] == table_id:
                 default_idx = i
                 break
-    default_idx = min(default_idx, len(table_map) - 1)
 
-    selected_name = st.selectbox(
-        "Table", list(table_map.keys()), index=default_idx,
+    id_to_table = {t["id"]: t for t in tables}
+    selected_id = st.selectbox(
+        "Table", options=list(id_to_table.keys()),
+        format_func=lambda tid: id_to_table[tid]["name"],
+        index=default_idx,
         key="sim_table_selector", label_visibility="collapsed",
     )
-    table     = table_map[selected_name]
+    table     = id_to_table[selected_id]
     in_cols   = [c for c in table["columns"] if c["role"] == "input"]
     out_cols  = [c for c in table["columns"] if c["role"] == "output"]
     rules     = table.get("rules", [])
