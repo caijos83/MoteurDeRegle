@@ -6,6 +6,8 @@ from utils.api import (
 )
 
 _TYPE_FR = {"number": "numérique", "text": "texte", "boolean": "booléen"}
+_TYPE_LABELS = ["numérique", "texte", "booléen"]
+_TYPE_TO_API = {"numérique": "number", "texte": "text", "booléen": "boolean"}
 
 _TABLE_CSS = """
 <style>
@@ -79,28 +81,67 @@ def _reset_edit_state(table_id: str) -> None:
             if key.startswith("cond_") or key.startswith("out_"):
                 del st.session_state[key]
         st.session_state["_current_table_id"] = table_id
+        st.session_state["mr_show_import"] = False
+
+
+def _init_state() -> None:
+    for k, v in [("mr_show_import", False), ("mr_upload_key", 0)]:
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+
+def _add_column_popover(table: dict, role: str, key_prefix: str) -> None:
+    label = "Nouvelle entrée (IN)" if role == "input" else "Nouvelle sortie (OUT)"
+    with st.popover("➕", use_container_width=True, help=f"Ajouter une colonne {'IN' if role == 'input' else 'OUT'}"):
+        st.markdown(f"**{label}**")
+        nm = st.text_input("Nom", key=f"{key_prefix}_name", label_visibility="collapsed",
+                            placeholder="Nom de la colonne")
+        tp = st.selectbox("Type", _TYPE_LABELS, key=f"{key_prefix}_type", label_visibility="collapsed")
+        if st.button("Ajouter", key=f"{key_prefix}_add", use_container_width=True, type="primary"):
+            name_clean = nm.strip()
+            if not name_clean:
+                st.warning("Donnez un nom à la colonne.")
+            elif any(c["name"] == name_clean for c in table["columns"]):
+                st.error("Une colonne avec ce nom existe déjà.")
+            else:
+                new_columns = table["columns"] + [{
+                    "name": name_clean,
+                    "type": _TYPE_TO_API[tp],
+                    "role": role,
+                }]
+                resp = requests.put(
+                    f"{API_BASE}/tables/{table['id']}",
+                    json={"columns": new_columns}, timeout=5,
+                )
+                if resp.ok:
+                    st.session_state.pop(f"{key_prefix}_name", None)
+                    st.rerun()
+                else:
+                    st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
 
 
 def render(table_id: str | None = None) -> None:
+    _init_state()
     tables = api_get("/tables") or []
     if not tables:
         st.info("Aucune table disponible.")
         return
 
-    table_map = {t["name"]: t for t in tables}
     default_idx = 0
     if table_id:
         for i, t in enumerate(tables):
             if t["id"] == table_id:
                 default_idx = i
                 break
-    default_idx = min(default_idx, len(table_map) - 1)
 
-    selected_name = st.selectbox(
-        "Table", list(table_map.keys()), index=default_idx,
+    id_to_table = {t["id"]: t for t in tables}
+    selected_id = st.selectbox(
+        "Table", options=list(id_to_table.keys()),
+        format_func=lambda tid: id_to_table[tid]["name"],
+        index=default_idx,
         key="table_selector", label_visibility="collapsed",
     )
-    table = table_map[selected_name]
+    table = id_to_table[selected_id]
     _reset_edit_state(table["id"])
 
     input_cols  = [c for c in table["columns"] if c["role"] == "input"]
@@ -144,7 +185,13 @@ def render(table_id: str | None = None) -> None:
             save_clicked = st.button("✓  Enregistrer", use_container_width=True, type="primary")
 
     if show_import:
-        uploaded = st.file_uploader("Fichier JSON de règles", type="json")
+        st.session_state["mr_show_import"] = not st.session_state["mr_show_import"]
+
+    if st.session_state["mr_show_import"]:
+        uploaded = st.file_uploader(
+            "Fichier JSON de règles", type="json",
+            key=f"mr_upload_{st.session_state['mr_upload_key']}",
+        )
         if uploaded:
             try:
                 data = json.loads(uploaded.read())
@@ -154,8 +201,12 @@ def render(table_id: str | None = None) -> None:
                     json={"rules": rules + new_rules}, timeout=5,
                 )
                 if resp.ok:
+                    st.session_state["mr_show_import"] = False
+                    st.session_state["mr_upload_key"] += 1
                     st.success(f"{len(new_rules)} règle(s) importée(s).")
                     st.rerun()
+                else:
+                    st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
             except Exception as e:
                 st.error(f"Fichier invalide : {e}")
 
@@ -163,10 +214,19 @@ def render(table_id: str | None = None) -> None:
 
     if not input_cols and not output_cols:
         st.info("Cette table n'a pas de colonnes.")
+        ec1, ec2 = st.columns(2)
+        with ec1:
+            st.markdown("Ajouter une entrée")
+            _add_column_popover(table, "input", "mc_in_empty")
+        with ec2:
+            st.markdown("Ajouter une sortie")
+            _add_column_popover(table, "output", "mc_out_empty")
         return
 
-    n = len(input_cols) + len(output_cols)
-    col_widths = [0.5] + [2.5] * n + [0.6]
+    n_in, n_out = len(input_cols), len(output_cols)
+    IN_BTN  = n_in + 1
+    OUT_BTN = n_in + 2 + n_out
+    col_widths = [0.5] + [2.5] * n_in + [0.5] + [2.5] * n_out + [0.5] + [0.6]
 
     st.markdown(_TABLE_CSS + '<div class="rules-wrapper">', unsafe_allow_html=True)
 
@@ -178,11 +238,15 @@ def render(table_id: str | None = None) -> None:
             _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{c['name']}</span>", "#4c3888"),
             unsafe_allow_html=True,
         )
+    with h_row[IN_BTN]:
+        _add_column_popover(table, "input", "mc_in")
     for i, c in enumerate(output_cols):
-        h_row[len(input_cols) + 1 + i].markdown(
+        h_row[IN_BTN + 1 + i].markdown(
             _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{c['name']}</span>", "#15803d"),
             unsafe_allow_html=True,
         )
+    with h_row[OUT_BTN]:
+        _add_column_popover(table, "output", "mc_out")
     h_row[-1].markdown(_cell("", "#374151"), unsafe_allow_html=True)
 
     # ── En-tête types ─────────────────────────────────────────────────────────
@@ -193,11 +257,13 @@ def render(table_id: str | None = None) -> None:
             _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>", "#4c3888", height="24px"),
             unsafe_allow_html=True,
         )
+    t_row[IN_BTN].markdown(_cell("", "#ffffff", height="24px"), unsafe_allow_html=True)
     for i, c in enumerate(output_cols):
-        t_row[len(input_cols) + 1 + i].markdown(
+        t_row[IN_BTN + 1 + i].markdown(
             _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>", "#15803d", height="24px"),
             unsafe_allow_html=True,
         )
+    t_row[OUT_BTN].markdown(_cell("", "#ffffff", height="24px"), unsafe_allow_html=True)
     t_row[-1].markdown(_cell("", "#374151", height="24px"), unsafe_allow_html=True)
 
     # ── Lignes éditables ──────────────────────────────────────────────────────
@@ -222,14 +288,20 @@ def render(table_id: str | None = None) -> None:
                     label_visibility="collapsed",
                 )
 
+        d_row[IN_BTN].markdown(
+            "<div style='height:43px;border-bottom:1px solid #f0f0f0;'></div>", unsafe_allow_html=True)
+
         for i, c in enumerate(output_cols):
-            with d_row[len(input_cols) + 1 + i]:
+            with d_row[IN_BTN + 1 + i]:
                 current = str(rule.get("output", {}).get(c["name"], ""))
                 st.text_input(
                     c["name"], value=current,
                     key=f"out_{idx}_{c['name']}",
                     label_visibility="collapsed",
                 )
+
+        d_row[OUT_BTN].markdown(
+            "<div style='height:43px;border-bottom:1px solid #f0f0f0;'></div>", unsafe_allow_html=True)
 
         with d_row[-1]:
             if st.button("🗑", key=f"del_{idx - 1}"):

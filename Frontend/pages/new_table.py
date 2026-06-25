@@ -143,7 +143,10 @@ label[data-testid="stWidgetLabel"] p {
 
 
 def _init() -> None:
-    for k, v in [("nt_columns", []), ("nt_rules", []), ("nt_show_add", False)]:
+    for k, v in [
+        ("nt_columns", []), ("nt_rules", []), ("nt_show_add", False),
+        ("nt_show_import", False), ("nt_upload_key", 0),
+    ]:
         if k not in st.session_state:
             st.session_state[k] = v
 
@@ -218,12 +221,20 @@ def render() -> None:
         st.rerun()
 
     if do_import:
-        up = st.file_uploader("Fichier JSON à importer", type="json", key="nt_upload")
+        st.session_state["nt_show_import"] = not st.session_state["nt_show_import"]
+
+    if st.session_state["nt_show_import"]:
+        up = st.file_uploader(
+            "Fichier JSON à importer", type="json",
+            key=f"nt_upload_{st.session_state['nt_upload_key']}",
+        )
         if up:
             try:
                 d = json.loads(up.read())
                 if "columns" in d: st.session_state["nt_columns"] = d["columns"]
                 if "rules"   in d: st.session_state["nt_rules"].extend(d["rules"])
+                st.session_state["nt_show_import"] = False
+                st.session_state["nt_upload_key"] += 1
                 st.rerun()
             except Exception as e:
                 st.error(f"Fichier invalide : {e}")
