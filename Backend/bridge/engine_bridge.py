@@ -10,11 +10,18 @@ import subprocess
 from pathlib import Path
 
 MOJO_BINARY = Path(__file__).parent.parent / "engine" / "evaluator"
+MOJO_DOCKER_IMAGE = "dmn-mojo-engine"  # construite via Backend/engine/Dockerfile
 
 
 def evaluate(table: dict, inputs: dict) -> dict:
     """
     Évalue des inputs contre une table de décision via le moteur Mojo.
+
+    Trois paliers, du plus rapide au plus portable :
+    1. binaire natif compilé localement (Backend/engine/evaluator)
+    2. conteneur Docker (dmn-mojo-engine) — portable, résout les binaires
+       Linux inexécutables sur un autre OS
+    3. fallback Python pur — toujours disponible, pour le dev/tests
 
     Args:
         table:  table de décision (dict Python)
@@ -25,22 +32,51 @@ def evaluate(table: dict, inputs: dict) -> dict:
     """
     payload = _serialize_request(table, inputs)
 
+    for run in (_run_native, _run_docker):
+        stdout = run(payload)
+        if stdout is not None:
+            return _parse_response(stdout, table)
+
+    return _evaluate_python_fallback(table, inputs)
+
+
+def _run_native(payload: str) -> str | None:
+    """
+    Exécute le binaire compilé localement.
+    Retourne None si l'OS ne peut pas l'exécuter (absent, ou ELF Linux compilé
+    via WSL appelé depuis un interpréteur Python Windows natif -> WinError 193)
+    — dans ce cas on essaie le palier suivant. Si le binaire tourne mais
+    échoue réellement, on laisse remonter l'erreur (signal d'un vrai bug).
+    """
     try:
         result = subprocess.run(
-            [str(MOJO_BINARY)],
-            input=payload,
-            capture_output=True,
-            text=True,
-            timeout=5,
+            [str(MOJO_BINARY)], input=payload, capture_output=True, text=True, timeout=5,
         )
-        if result.returncode != 0:
-            raise RuntimeError(f"Mojo engine error: {result.stderr}")
-        return _parse_response(result.stdout, table)
     except OSError:
-        # Fallback Python pur : binaire absent (FileNotFoundError), ou présent
-        # mais inexécutable depuis cet OS (ex. binaire Linux compilé via WSL
-        # appelé depuis un interpréteur Python Windows natif -> WinError 193).
-        return _evaluate_python_fallback(table, inputs)
+        return None
+    if result.returncode != 0:
+        raise RuntimeError(f"Mojo engine error: {result.stderr}")
+    return result.stdout
+
+
+def _run_docker(payload: str) -> str | None:
+    """
+    Exécute le moteur dans le conteneur `dmn-mojo-engine` (voir
+    Backend/engine/Dockerfile et docker-compose.yml). Retourne None si Docker
+    n'est pas installé, le daemon n'est pas démarré, ou l'image n'a pas été
+    construite (`docker compose build mojo-engine`) — on bascule alors sur le
+    fallback Python pur.
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "run", "--rm", "-i", MOJO_DOCKER_IMAGE],
+            input=payload, capture_output=True, text=True, timeout=15,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout
 
 
 def _serialize_request(table: dict, inputs: dict) -> str:
