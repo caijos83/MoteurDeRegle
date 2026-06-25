@@ -21,7 +21,7 @@ UI_CMD  = [
     sys.executable, "-m", "streamlit", "run", "Frontend/app.py",
     "--server.port", UI_PORT,
     "--server.headless", "true",
-    "--server.runOnSave", "false",
+    "--server.runOnSave", "true",
     "--browser.gatherUsageStats", "false",
 ]
 
@@ -88,13 +88,12 @@ if __name__ == "__main__":
     open_app()
 
     print("Application lancée. Appuyez sur Ctrl+C pour tout arrêter.")
-    # Garder le script en vie
+    # Garder le script en vie (sleep en boucle : interruptible par Ctrl+C,
+    # contrairement à api.wait() qui bloque sur un wait Windows non-interruptible)
     try:
-        api.wait()
-        while True:
+        while api.poll() is None and ui.poll() is None:
             time.sleep(1)
     except KeyboardInterrupt:
+        pass
+    finally:
         _stop(api, ui)
-
-        api.terminate()
-        ui.terminate()
