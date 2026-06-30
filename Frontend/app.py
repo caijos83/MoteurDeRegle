@@ -27,28 +27,32 @@ table_id = params.get("table_id", None)
 render_navbar(page)
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
-if page == "tables":
-    from pages.tables import render
+if page == "home":
+    from views.home import render
+    render()
+
+elif page == "tables":
+    from views.tables import render
     render()
 
 elif page == "detail":
     if table_id:
-        from pages.table_detail import render
+        from views.table_detail import render
         render(table_id)
     else:
         st.query_params["page"] = "tables"
         st.rerun()
 
 elif page == "new_table":
-    from pages.new_table import render
+    from views.new_table import render
     render()
 
 elif page == "manage_rules":
-    from pages.manage_rules import render
+    from views.manage_rules import render
     render(table_id)
 
 elif page == "simulate":
-    from pages.simulate import render
+    from views.simulate import render
     render(table_id)
 
 elif page in ("api", "parametres"):

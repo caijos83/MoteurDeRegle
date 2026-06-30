@@ -6,6 +6,7 @@ Fallback en mémoire pour les tests unitaires.
 
 import os
 import json
+import datetime
 from pathlib import Path
 
 TERMINUS_URL = os.getenv("TERMINUS_URL", "http://localhost:6363")
@@ -33,12 +34,24 @@ class TerminusDBClient:
             _FALLBACK_DIR.mkdir(exist_ok=True)
 
     # ------------------------------------------------------------------
+    def _load_with_timestamps(self, path: Path) -> dict:
+        data = json.loads(path.read_text(encoding="utf-8-sig", errors="replace"))
+        if "created_at" not in data or "updated_at" not in data:
+            # Tables créées avant l'ajout des timestamps : on retombe sur la
+            # date de modification du fichier plutôt que de laisser le champ vide.
+            mtime = datetime.datetime.fromtimestamp(
+                path.stat().st_mtime, tz=datetime.timezone.utc
+            ).isoformat()
+            data.setdefault("created_at", mtime)
+            data.setdefault("updated_at", mtime)
+        return data
+
     def list_tables(self) -> list[dict]:
         if self._use_fallback:
             tables = []
             for f in _FALLBACK_DIR.glob("*.json"):
                 try:
-                    tables.append(json.loads(f.read_text(encoding="utf-8-sig", errors="replace")))
+                    tables.append(self._load_with_timestamps(f))
                 except json.JSONDecodeError:
                     continue
             return tables
@@ -49,12 +62,15 @@ class TerminusDBClient:
         if self._use_fallback:
             path = _FALLBACK_DIR / f"{table_id}.json"
             if path.exists():
-                return json.loads(path.read_text(encoding="utf-8-sig", errors="replace"))
+                return self._load_with_timestamps(path)
             return None
         # TODO: requête WOQL get document by id
         return None
 
     def save_table(self, table: dict):
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        table.setdefault("created_at", now)
+        table["updated_at"] = now
         if self._use_fallback:
             path = _FALLBACK_DIR / f"{table['id']}.json"
             path.write_text(json.dumps(table, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -19,7 +19,7 @@ def render_navbar(current_page: str) -> None:
             f'<span class="nav-link nav-active">{context}</span>'
         )
     else:
-        active = current_page if current_page in dict(_MAIN_TABS) else "tables"
+        active = current_page if current_page in dict(_MAIN_TABS) else ("" if current_page == "home" else "tables")
         tabs_html = ""
         for label, key in _MAIN_TABS:
             if key == active:
@@ -45,7 +45,9 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     top: 0; left: 0;
     width: 100%;
     height: 56px;
-    background: #0d1117;
+    background: #ffffff;
+    border-bottom: 1.5px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
     z-index: 9999;
     display: flex;
     align-items: center;
@@ -54,14 +56,15 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     gap: 2rem;
 }}
 .dmn-logo {{
-    color: #fff;
+    color: #0f172a;
     font-size: 1.2rem;
-    font-weight: 700;
+    font-weight: 800;
     white-space: nowrap;
     margin-right: 0.5rem;
     text-decoration: none;
+    letter-spacing: -0.01em;
 }}
-.dmn-logo span {{ font-weight: 300; }}
+.dmn-logo span {{ color: #2563eb; font-weight: 700; }}
 .dmn-tabs {{
     display: flex;
     flex: 1;
@@ -69,7 +72,7 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     align-items: stretch;
 }}
 .nav-link {{
-    color: #8b949e;
+    color: #64748b;
     text-decoration: none;
     border-bottom: 2px solid transparent;
     padding: 0 16px;
@@ -78,22 +81,13 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     align-items: center;
     font-size: 0.95rem;
 }}
-.nav-active {{
-    color: #fff !important;
-    border-bottom: 2px solid #4ade80 !important;
-    font-weight: 500;
+.nav-link:hover {{
+    color: #0f172a;
 }}
-.dmn-avatar {{
-    width: 36px; height: 36px;
-    background: #7c3aed;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.8rem;
-    flex-shrink: 0;
+.nav-active {{
+    color: #0f172a !important;
+    border-bottom: 2px solid #2563eb !important;
+    font-weight: 600;
 }}
 
 /* ── Boutons globaux ── */
@@ -107,8 +101,7 @@ div.stButton > button {{
 </style>
 
 <div class="dmn-navbar">
-    <a class="dmn-logo" href="?page=tables" target="_self">DMN<span>Light</span></a>
+    <a class="dmn-logo" href="?page=home" target="_self">DMN<span>Light</span></a>
     <div class="dmn-tabs">{tabs_html}</div>
-    <div class="dmn-avatar">GP</div>
 </div>
 """, unsafe_allow_html=True)
