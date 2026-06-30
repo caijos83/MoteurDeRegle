@@ -64,7 +64,6 @@ def render(table_id: str | None = None) -> None:
         st.info("Aucune table disponible.")
         return
 
-    table_map = {t["name"]: t for t in tables}
     default_idx = 0
     if table_id:
         for i, t in enumerate(tables):
@@ -72,10 +71,14 @@ def render(table_id: str | None = None) -> None:
                 default_idx = i
                 break
 
-    selected_name = st.selectbox(
-        "Table", list(table_map.keys()), index=default_idx, label_visibility="collapsed",
+    id_to_table = {t["id"]: t for t in tables}
+    selected_id = st.selectbox(
+        "Table", options=list(id_to_table.keys()),
+        format_func=lambda tid: id_to_table[tid]["name"],
+        index=default_idx,
+        key="sim_table_selector", label_visibility="collapsed",
     )
-    table     = table_map[selected_name]
+    table     = id_to_table[selected_id]
     in_cols   = [c for c in table["columns"] if c["role"] == "input"]
     out_cols  = [c for c in table["columns"] if c["role"] == "output"]
     rules     = table.get("rules", [])
@@ -85,8 +88,8 @@ def render(table_id: str | None = None) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" style="color:#4f46e5; text-decoration:none;">Tables</a>'
-        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" style="color:#4f46e5; text-decoration:none;">'
+        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
+        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4f46e5; text-decoration:none;">'
         f'{table["name"]}</a> &rsaquo; Exécution</p>',
         unsafe_allow_html=True,
     )
@@ -195,13 +198,7 @@ def render(table_id: str | None = None) -> None:
                     else:
                         icon, color, status = "✗", "#9ca3af", "pas de match"
 
-                    row_bg = "#f0fdf4" if matched and not (policy == "FIRST" and first_matched and not matched) else "#f9fafb"
-                    if icon == "✓":
-                        row_bg = "#f0fdf4"
-                    elif icon == "✗" and status == "ignorée":
-                        row_bg = "#f9fafb"
-                    else:
-                        row_bg = "#f9fafb"
+                    row_bg = "#f0fdf4" if icon == "✓" else "#f9fafb"
 
                     st.markdown(
                         f'<div style="display:flex; align-items:center; gap:10px; padding:8px 12px;'

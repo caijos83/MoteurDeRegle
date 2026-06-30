@@ -6,3 +6,13 @@ services:
       - "6363:6363"
     environment:
       TERMINUSDB_ADMIN_PASS: root
+
+  # Outil ponctuel (lit stdin, écrit stdout, sort) — pas un service réseau.
+  # `profiles` l'exclut de `docker compose up` ; on ne s'en sert que pour le
+  # builder : `docker compose build mojo-engine`. À l'exécution, le bridge
+  # Python lance `docker run --rm -i dmn-mojo-engine` (voir engine_bridge.py).
+  mojo-engine:
+    build:
+      context: ./Backend/engine
+    image: dmn-mojo-engine
+    profiles: ["build-only"]

@@ -48,10 +48,13 @@ class TerminusDBClient:
 
     def list_tables(self) -> list[dict]:
         if self._use_fallback:
-            return [
-                self._load_with_timestamps(f)
-                for f in _FALLBACK_DIR.glob("*.json")
-            ]
+            tables = []
+            for f in _FALLBACK_DIR.glob("*.json"):
+                try:
+                    tables.append(self._load_with_timestamps(f))
+                except json.JSONDecodeError:
+                    continue
+            return tables
         # TODO: requête TerminusDB WOQL pour lister les documents Table
         return []
 
@@ -70,7 +73,7 @@ class TerminusDBClient:
         table["updated_at"] = now
         if self._use_fallback:
             path = _FALLBACK_DIR / f"{table['id']}.json"
-            path.write_text(json.dumps(table, ensure_ascii=False, indent=2))
+            path.write_text(json.dumps(table, ensure_ascii=False, indent=2), encoding="utf-8")
             return
         # TODO: upsert document TerminusDB
         pass

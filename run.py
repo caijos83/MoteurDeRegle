@@ -21,7 +21,7 @@ UI_CMD  = [
     sys.executable, "-m", "streamlit", "run", "Frontend/app.py",
     "--server.port", UI_PORT,
     "--server.headless", "true",
-    "--server.runOnSave", "false",
+    "--server.runOnSave", "true",
     "--browser.gatherUsageStats", "false",
 ]
 
@@ -63,6 +63,15 @@ def open_app():
     else:
         webbrowser.open(url)
 
+def _stop(api, ui):
+    print("\nArrêt en cours...")
+    for p in (api, ui):
+        try:
+            p.terminate()
+            p.wait(timeout=5)
+        except Exception:
+            p.kill()
+
 if __name__ == "__main__":
     # Détecter si on est sur Windows pour les flags de création de processus
     creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
@@ -78,10 +87,13 @@ if __name__ == "__main__":
     time.sleep(4)
     open_app()
 
-    # Garder le script en vie
+    print("Application lancée. Appuyez sur Ctrl+C pour tout arrêter.")
+    # Garder le script en vie (sleep en boucle : interruptible par Ctrl+C,
+    # contrairement à api.wait() qui bloque sur un wait Windows non-interruptible)
     try:
-        api.wait()
-        ui.wait()
+        while api.poll() is None and ui.poll() is None:
+            time.sleep(1)
     except KeyboardInterrupt:
-        api.terminate()
-        ui.terminate()
+        pass
+    finally:
+        _stop(api, ui)
