@@ -1,5 +1,6 @@
 import os
 import requests
+from html import escape as _html_escape
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,9 +16,10 @@ POLICY_TO_API  = {
 }
 POLICY_FROM_API = {v: k for k, v in POLICY_TO_API.items()}
 
-OPERATORS_NUMBER  = [">", "<", "≥", "≤", "=", "≠", "entre … et …"]
-OPERATORS_TEXT    = ["est égal à", "fait partie de la liste"]
-OPERATORS_BOOLEAN = ["est Vrai", "est Faux"]
+# "— (ignorer)" en premier : condition laissée vide = critère ignoré pour cette règle
+OPERATORS_NUMBER  = ["— (ignorer)", ">", "<", "≥", "≤", "=", "≠", "entre … et …"]
+OPERATORS_TEXT    = ["— (ignorer)", "est égal à", "fait partie de la liste"]
+OPERATORS_BOOLEAN = ["— (ignorer)", "est Vrai", "est Faux"]
 OP_TO_SYNTAX = {">": ">", "<": "<", "≥": ">=", "≤": "<=", "=": "=", "≠": "!="}
 
 
@@ -30,6 +32,7 @@ def api_get(path):
 
 
 def fmt_date(raw) -> str:
+    """Formate une date ISO en jj/mm/aaaa hh:mm pour l'affichage."""
     if not raw:
         return "—"
     try:
@@ -40,22 +43,32 @@ def fmt_date(raw) -> str:
         return "—"
 
 
+def html_escape(s: str) -> str:
+    """Échappe une valeur utilisateur avant injection dans du HTML brut."""
+    return _html_escape(str(s))
+
+
 def fmt_condition(raw: str) -> str:
+    """Formate une condition DMN pour l'affichage HTML (sécurisé)."""
     if not raw or raw == "—":
         return "—"
     raw = str(raw).strip()
-    raw = raw.replace(">= ", "≥ ").replace("<= ", "≤ ").replace("!= ", "≠ ")
+    # Échappement HTML d'abord (< → &lt;, > → &gt;, & → &amp;, etc.)
+    raw = _html_escape(raw)
+    # Puis remplacement des séquences d'opérateurs DMN par des symboles Unicode
+    raw = raw.replace("&gt;=", "≥").replace("&lt;=", "≤").replace("!=", "≠")
     return raw
 
 
 def fmt_output_html(val: str) -> str:
+    """Affiche une valeur de sortie : colorée si numérique, échappée sinon."""
     try:
         num = float(str(val).replace("+", ""))
         disp = f"+{int(num)}" if num > 0 else (str(int(num)) if num == int(num) else str(num))
         color = "#16a34a" if num > 0 else ("#dc2626" if num < 0 else "#374151")
         return f'<span style="color:{color}; font-weight:600;">{disp}</span>'
     except Exception:
-        return str(val)
+        return _html_escape(str(val))
 
 
 def policy_badge_html(policy: str) -> str:
@@ -89,41 +102,67 @@ def score_range(table: dict) -> str:
     return f"{mn}→+{mx}" if mx > 0 else f"{mn}→{mx}"
 
 
-def build_condition(col_type, operator, value, value2=""):
+def build_condition(col_type: str, operator: str, value, value2="") -> str:
+    if not operator or operator == "— (ignorer)":
+        return ""
     if col_type == "number":
         if operator == "entre … et …":
-            return f"[{value}..{value2}]"
-        return f"{OP_TO_SYNTAX[operator]} {value}"
+            v1 = int(value) if isinstance(value, float) and value == int(value) else value
+            v2 = int(value2) if isinstance(value2, float) and value2 == int(value2) else value2
+            return f"[{v1}..{v2}]"
+        v = int(value) if isinstance(value, float) and value == int(value) else value
+        return f"{OP_TO_SYNTAX[operator]} {v}"
     if col_type == "text":
         if operator == "fait partie de la liste":
-            items = [v.strip() for v in value.split(",")]
+            items = [v.strip() for v in str(value).split(",") if v.strip()]
             return '["' + '","'.join(items) + '"]'
-        return value
+        return str(value)
     if col_type == "boolean":
         return "true" if operator == "est Vrai" else "false"
-    return value
+    return str(value)
 
 
-def condition_form(col, key_prefix):
+def condition_form(col: dict, key_prefix: str) -> str:
+    """
+    Widget de saisie d'une condition DMN pour un formulaire Streamlit.
+
+    IMPORTANT — compatibilité st.form : à l'intérieur d'un formulaire Streamlit,
+    les interactions sur les widgets ne déclenchent pas de rechargement de page.
+    Pour l'opérateur numérique "entre … et …", les deux bornes (v1 et v2) sont
+    TOUJOURS rendues, qu'elles soient utilisées ou non. Ainsi les clés de widget
+    restent stables et l'utilisateur n'a pas à re-sélectionner l'opérateur après soumission.
+    """
     import streamlit as st
     ct = col["type"]
+
     if ct == "number":
         op = st.selectbox("Opérateur", OPERATORS_NUMBER, key=f"{key_prefix}_op")
-        if op == "entre … et …":
-            c1, c2 = st.columns(2)
-            v1 = c1.number_input("De", key=f"{key_prefix}_v1", step=1.0)
-            v2 = c2.number_input("À",  key=f"{key_prefix}_v2", step=1.0)
-            return build_condition(ct, op, v1, v2)
-        v = st.number_input("Valeur", key=f"{key_prefix}_v", step=1.0)
-        return build_condition(ct, op, v)
+        # Les deux champs sont toujours affichés — seule façon de fonctionner
+        # dans un st.form (pas de rerun mid-form).
+        # build_condition ignore v2 pour tous les opérateurs sauf "entre … et …".
+        v1 = st.number_input(
+            "Valeur" if op != "entre … et …" else "De (borne basse)",
+            key=f"{key_prefix}_v1", step=1.0,
+        )
+        v2 = st.number_input(
+            "À (borne haute)",
+            key=f"{key_prefix}_v2", step=1.0,
+            help="Requis uniquement pour l'opérateur 'entre … et …'",
+        )
+        return build_condition(ct, op, v1, v2)
+
     if ct == "text":
         op = st.selectbox("Opérateur", OPERATORS_TEXT, key=f"{key_prefix}_op")
+        if op == "— (ignorer)":
+            return ""
         v = st.text_input(
-            "Valeurs séparées par des virgules" if op == "fait partie de la liste" else "Valeur",
+            "Valeurs (séparées par des virgules)" if op == "fait partie de la liste" else "Valeur",
             key=f"{key_prefix}_v",
         )
         return build_condition(ct, op, v)
+
     if ct == "boolean":
         op = st.selectbox("Valeur", OPERATORS_BOOLEAN, key=f"{key_prefix}_op")
         return build_condition(ct, op, "")
+
     return ""

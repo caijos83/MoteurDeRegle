@@ -1,6 +1,7 @@
 import json
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import api_get, policy_badge_html, fmt_date, API_BASE
 
 _COL_WIDTHS = [0.35, 3.65, 2, 1, 1, 2, 2]
@@ -132,7 +133,7 @@ def render() -> None:
             st.checkbox("", key=f"chk_{t['id']}", label_visibility="collapsed")
         with rcols[1]:
             st.markdown(
-                f'<div style="{row_style}"><strong>{t["name"]}</strong></div>',
+                f'<div style="{row_style}"><strong>{_esc(t["name"])}</strong></div>',
                 unsafe_allow_html=True,
             )
         with rcols[2]:
@@ -159,7 +160,7 @@ def render() -> None:
                     st.query_params["table_id"] = t["id"]
                     st.rerun()
             with a3:
-                if st.button("🗑", key=f"del_{t['id']}", help="Supprimer"):
+                if st.button("✕", key=f"del_{t['id']}", help="Supprimer"):
                     requests.delete(f"{API_BASE}/tables/{t['id']}", timeout=5)
                     st.session_state.pop(f"chk_{t['id']}", None)
                     st.rerun()
