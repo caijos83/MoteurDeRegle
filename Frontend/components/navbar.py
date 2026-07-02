@@ -1,6 +1,6 @@
 import streamlit as st
 
-_MAIN_TABS = [("Tables", "tables"), ("API", "api"), ("Paramètres", "parametres")]
+_MAIN_TABS = [("Tables", "tables"), ("API", "api")]
 
 _CONTEXT_LABEL = {
     "new_table":    "Nouvelle table",

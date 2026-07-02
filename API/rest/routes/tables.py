@@ -5,12 +5,17 @@ CRUD tables de décision — POST/GET/PUT/DELETE /tables
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Literal
+from datetime import datetime, timezone
 import uuid
 
 from ..db.terminusdb import TerminusDBClient
 
 router = APIRouter(tags=["tables"])
 db = TerminusDBClient()
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M")
 
 
 class Column(BaseModel):
@@ -54,7 +59,7 @@ def get_table(table_id: str):
 @router.post("/tables", status_code=201)
 def create_table(body: TableCreate):
     table_id = str(uuid.uuid4())
-    table = {"id": table_id, **body.model_dump()}
+    table = {"id": table_id, "updated_at": _now(), **body.model_dump()}
     db.save_table(table)
     return table
 
@@ -65,7 +70,7 @@ def update_table(table_id: str, body: TableUpdate):
     if not existing:
         raise HTTPException(status_code=404, detail="Table introuvable")
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    updated = {**existing, **updates}
+    updated = {**existing, **updates, "updated_at": _now()}
     db.save_table(updated)
     return updated
 

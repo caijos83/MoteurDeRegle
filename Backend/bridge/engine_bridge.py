@@ -32,12 +32,16 @@ def evaluate(table: dict, inputs: dict) -> dict:
     """
     payload = _serialize_request(table, inputs)
 
-    for run in (_run_native, _run_docker):
-        stdout = run(payload)
+    for engine_name, run_fn in [("mojo-native", _run_native), ("mojo-docker", _run_docker)]:
+        stdout = run_fn(payload)
         if stdout is not None:
-            return _parse_response(stdout, table)
+            result = _parse_response(stdout, table)
+            result["engine"] = engine_name
+            return result
 
-    return _evaluate_python_fallback(table, inputs)
+    result = _evaluate_python_fallback(table, inputs)
+    result["engine"] = "python-fallback"
+    return result
 
 
 def _run_native(payload: str) -> str | None:

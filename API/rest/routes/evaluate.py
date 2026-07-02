@@ -2,6 +2,7 @@
 POST /tables/{id}/evaluate — évaluation d'une table avec des inputs
 """
 
+import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -28,8 +29,21 @@ def evaluate_table(table_id: str, body: EvaluateRequest):
     if missing:
         raise HTTPException(
             status_code=422,
-            detail=f"Colonnes d'input manquantes : {', '.join(missing)}"
+            detail=f"Colonnes d'input manquantes : {', '.join(sorted(missing))}"
         )
 
+    t0 = time.perf_counter()
     result = evaluate(table, {k: str(v) for k, v in body.inputs.items()})
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+
+    engine = result.get("engine", "unknown")
+    n_rules = len(table.get("rules", []))
+    print(
+        f"\033[36m[EVAL]\033[0m  table={table.get('name', table_id)!r}"
+        f"  policy={table.get('hit_policy')}"
+        f"  rules={n_rules}"
+        f"  engine={engine}"
+        f"  \033[33m{elapsed_ms:.1f}ms\033[0m",
+        flush=True,
+    )
     return result

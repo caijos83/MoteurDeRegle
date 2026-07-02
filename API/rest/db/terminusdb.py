@@ -5,8 +5,14 @@ Fallback en mémoire pour les tests unitaires.
 """
 
 import os
+import re
 import json
 from pathlib import Path
+
+# Refuse tout table_id qui n'est pas un UUID v4 valide — prévient la traversée de chemin
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+)
 
 TERMINUS_URL = os.getenv("TERMINUS_URL", "http://localhost:6363")
 TERMINUS_USER = os.getenv("TERMINUS_USER", "admin")
@@ -46,6 +52,8 @@ class TerminusDBClient:
         return []
 
     def get_table(self, table_id: str) -> dict | None:
+        if not _UUID_RE.match(table_id):
+            return None
         if self._use_fallback:
             path = _FALLBACK_DIR / f"{table_id}.json"
             if path.exists():
@@ -55,14 +63,19 @@ class TerminusDBClient:
         return None
 
     def save_table(self, table: dict):
+        table_id = table.get("id", "")
+        if not _UUID_RE.match(table_id):
+            return
         if self._use_fallback:
-            path = _FALLBACK_DIR / f"{table['id']}.json"
+            path = _FALLBACK_DIR / f"{table_id}.json"
             path.write_text(json.dumps(table, ensure_ascii=False, indent=2), encoding="utf-8")
             return
         # TODO: upsert document TerminusDB
         pass
 
     def delete_table(self, table_id: str):
+        if not _UUID_RE.match(table_id):
+            return
         if self._use_fallback:
             path = _FALLBACK_DIR / f"{table_id}.json"
             if path.exists():

@@ -1,6 +1,7 @@
 import json
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import API_BASE, fmt_condition, fmt_output_html, condition_form
 
 _TYPE_LABELS = ["numérique", "texte", "booléen"]
@@ -295,7 +296,7 @@ def render() -> None:
                     f'font-size:.82rem;color:#64748b;">{ft}</div>',
                     unsafe_allow_html=True,
                 )
-                if row[3].button("🗑", key=f"rc_{i}", help="Supprimer la colonne"):
+                if row[3].button("✕", key=f"rc_{i}", help="Supprimer la colonne"):
                     st.session_state["nt_columns"].pop(i)
                     st.rerun()
 
@@ -374,11 +375,11 @@ def render() -> None:
             "#f8fafc", h="40px", align="center", bb=False), unsafe_allow_html=True)
         for i, c in enumerate(in_cols):
             h[i+1].markdown(_cell(
-                f"<span style='font-size:.82rem;font-weight:700;color:#fff;'>{c['name']}</span>",
+                f"<span style='font-size:.82rem;font-weight:700;color:#fff;'>{_esc(c['name'])}</span>",
                 "#2563eb", h="40px", bb=False), unsafe_allow_html=True)
         for i, c in enumerate(out_cols):
             h[len(in_cols)+1+i].markdown(_cell(
-                f"<span style='font-size:.82rem;font-weight:700;color:#fff;'>{c['name']}</span>",
+                f"<span style='font-size:.82rem;font-weight:700;color:#fff;'>{_esc(c['name'])}</span>",
                 "#059669", h="40px", bb=False), unsafe_allow_html=True)
         h[-1].markdown(_cell("", "#f1f5f9", h="40px", bb=False), unsafe_allow_html=True)
 
@@ -413,7 +414,7 @@ def render() -> None:
                 d[len(in_cols)+1+i].markdown(
                     _cell(fmt_output_html(val), bg), unsafe_allow_html=True)
             with d[-1]:
-                if st.button("🗑", key=f"rd_{idx-1}", help="Supprimer la règle"):
+                if st.button("✕", key=f"rd_{idx-1}", help="Supprimer la règle"):
                     del_idx = idx - 1
 
         if del_idx is not None:

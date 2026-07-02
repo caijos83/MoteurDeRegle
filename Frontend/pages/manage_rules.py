@@ -1,6 +1,7 @@
 import json
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import (
     api_get, policy_badge_html, condition_form, API_BASE,
 )
@@ -112,7 +113,7 @@ def render(table_id: str | None = None) -> None:
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
         f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
         f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4f46e5; text-decoration:none;">'
-        f'{table["name"]}</a> &rsaquo; Règles</p>',
+        f'{_esc(table["name"])}</a> &rsaquo; Règles</p>',
         unsafe_allow_html=True,
     )
 
@@ -175,12 +176,12 @@ def render(table_id: str | None = None) -> None:
     h_row[0].markdown(_cell("#", "#1e293b", align="center"), unsafe_allow_html=True)
     for i, c in enumerate(input_cols):
         h_row[i + 1].markdown(
-            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{c['name']}</span>", "#4c3888"),
+            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{_esc(c['name'])}</span>", "#4c3888"),
             unsafe_allow_html=True,
         )
     for i, c in enumerate(output_cols):
         h_row[len(input_cols) + 1 + i].markdown(
-            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{c['name']}</span>", "#15803d"),
+            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{_esc(c['name'])}</span>", "#15803d"),
             unsafe_allow_html=True,
         )
     h_row[-1].markdown(_cell("", "#374151"), unsafe_allow_html=True)
@@ -232,7 +233,7 @@ def render(table_id: str | None = None) -> None:
                 )
 
         with d_row[-1]:
-            if st.button("🗑", key=f"del_{idx - 1}"):
+            if st.button("✕", key=f"del_{idx - 1}"):
                 _save_rules(table["id"], [r for j, r in enumerate(rules) if j != idx - 1])
                 st.rerun()
 
