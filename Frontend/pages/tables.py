@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import api_get, policy_badge_html, API_BASE
 
 
@@ -28,7 +29,7 @@ def render() -> None:
     # ── Filter ────────────────────────────────────────────────────────────────
     col_chk, col_sel = st.columns([0.3, 5])
     with col_chk:
-        st.checkbox("", key="select_all", label_visibility="collapsed")
+        st.checkbox("Tout sélectionner", key="select_all", label_visibility="collapsed")
     with col_sel:
         policy_filter = st.selectbox(
             "filter",
@@ -67,7 +68,7 @@ def render() -> None:
 
         with rcols[0]:
             st.markdown(
-                f'<div style="{row_style}"><strong>{t["name"]}</strong></div>',
+                f'<div style="{row_style}"><strong>{_esc(t["name"])}</strong></div>',
                 unsafe_allow_html=True,
             )
         with rcols[1]:
@@ -94,6 +95,6 @@ def render() -> None:
                     st.query_params["table_id"] = t["id"]
                     st.rerun()
             with a3:
-                if st.button("🗑", key=f"del_{t['id']}", help="Supprimer"):
+                if st.button("✕", key=f"del_{t['id']}", help="Supprimer"):
                     requests.delete(f"{API_BASE}/tables/{t['id']}", timeout=5)
                     st.rerun()

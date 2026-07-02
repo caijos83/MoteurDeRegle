@@ -1,6 +1,7 @@
 import time
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import api_get, policy_badge_html, fmt_output_html, API_BASE
 
 
@@ -71,9 +72,11 @@ def render(table_id: str | None = None) -> None:
             if t["id"] == table_id:
                 default_idx = i
                 break
+    default_idx = min(default_idx, len(table_map) - 1)
 
     selected_name = st.selectbox(
-        "Table", list(table_map.keys()), index=default_idx, label_visibility="collapsed",
+        "Table", list(table_map.keys()), index=default_idx,
+        key="sim_table_selector", label_visibility="collapsed",
     )
     table     = table_map[selected_name]
     in_cols   = [c for c in table["columns"] if c["role"] == "input"]
@@ -85,9 +88,9 @@ def render(table_id: str | None = None) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" style="color:#4f46e5; text-decoration:none;">Tables</a>'
-        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" style="color:#4f46e5; text-decoration:none;">'
-        f'{table["name"]}</a> &rsaquo; Exécution</p>',
+        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
+        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4f46e5; text-decoration:none;">'
+        f'{_esc(table["name"])}</a> &rsaquo; Exécution</p>',
         unsafe_allow_html=True,
     )
     st.markdown("## Tester la table")
@@ -149,6 +152,8 @@ def render(table_id: str | None = None) -> None:
                 else:
                     display_val = None
 
+                engine_label = resp.json().get("engine", "")
+
                 # ── Carte résultat ────────────────────────────────────────────
                 if display_val is None:
                     st.warning("Aucune règle ne correspond.")
@@ -157,7 +162,7 @@ def render(table_id: str | None = None) -> None:
                         num = float(display_val.replace("+", ""))
                         disp = f"+{int(num)}" if num > 0 else str(int(num) if num == int(num) else num)
                     except Exception:
-                        disp = display_val
+                        disp = _esc(display_val)  # échappement HTML pour les valeurs texte
 
                     st.markdown(
                         f'<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px;'
@@ -165,7 +170,7 @@ def render(table_id: str | None = None) -> None:
                         f'<div style="font-size:0.8rem; color:#15803d; font-weight:600; margin-bottom:6px; letter-spacing:.04em;">'
                         f'Résultat — {policy_label}</div>'
                         f'<div style="font-size:3.2rem; font-weight:800; color:#111827; line-height:1;">{disp}</div>'
-                        f'<div style="font-size:0.8rem; color:#6b7280; margin-top:6px;">{out_key}</div>'
+                        f'<div style="font-size:0.8rem; color:#6b7280; margin-top:6px;">{_esc(out_key)}</div>'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
@@ -195,13 +200,7 @@ def render(table_id: str | None = None) -> None:
                     else:
                         icon, color, status = "✗", "#9ca3af", "pas de match"
 
-                    row_bg = "#f0fdf4" if matched and not (policy == "FIRST" and first_matched and not matched) else "#f9fafb"
-                    if icon == "✓":
-                        row_bg = "#f0fdf4"
-                    elif icon == "✗" and status == "ignorée":
-                        row_bg = "#f9fafb"
-                    else:
-                        row_bg = "#f9fafb"
+                    row_bg = "#f0fdf4" if icon == "✓" else "#f9fafb"
 
                     st.markdown(
                         f'<div style="display:flex; align-items:center; gap:10px; padding:8px 12px;'
@@ -214,8 +213,15 @@ def render(table_id: str | None = None) -> None:
                         unsafe_allow_html=True,
                     )
 
+                engine_display = {
+                    "mojo-native":   "Mojo natif",
+                    "mojo-docker":   "Mojo Docker",
+                    "python-fallback": "Python (fallback)",
+                }.get(engine_label, engine_label)
                 st.markdown(
                     f'<p style="font-size:0.78rem; color:#9ca3af; margin-top:10px;">'
-                    f"Temps d'évaluation : {elapsed_ms} ms</p>",
+                    f"Temps d'évaluation : <strong>{elapsed_ms} ms</strong>"
+                    + (f" &nbsp;·&nbsp; moteur : {engine_display}" if engine_display else "")
+                    + "</p>",
                     unsafe_allow_html=True,
                 )

@@ -34,3 +34,9 @@ Thumbs.db
 
 # Archives
 *.zip
+
+# Données locales TerminusDB
+.data/
+
+# Binaire Mojo compilé (spécifique à la plateforme, généré par mojo build)
+Backend/engine/evaluator

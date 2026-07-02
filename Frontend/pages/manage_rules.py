@@ -1,25 +1,46 @@
 import json
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import (
-    api_get, policy_badge_html, fmt_condition, fmt_output_html,
-    condition_form, API_BASE,
+    api_get, policy_badge_html, condition_form, API_BASE,
 )
 
 _TYPE_FR = {"number": "numérique", "text": "texte", "boolean": "booléen"}
 
-# CSS : supprime l'écart entre colonnes pour simuler un tableau
 _TABLE_CSS = """
 <style>
 .rules-wrapper [data-testid="stHorizontalBlock"] {
     gap: 0 !important;
     margin-bottom: 0 !important;
+    align-items: center !important;
 }
 .rules-wrapper [data-testid="column"] > div {
     padding-bottom: 0 !important;
     margin-bottom: 0 !important;
 }
-/* Bouton 🗑 discret, pleine hauteur de la cellule */
+/* Champs de saisie dans le tableau */
+.rules-wrapper [data-testid="stTextInput"] > div > div > input {
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 10px 12px !important;
+    font-size: 0.9rem !important;
+    min-height: 43px !important;
+    box-shadow: none !important;
+}
+.rules-wrapper [data-testid="stTextInput"] > div > div > input:focus {
+    border-bottom: 1px solid #4f46e5 !important;
+    box-shadow: none !important;
+}
+.rules-wrapper [data-testid="stTextInput"] {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* Bouton 🗑 */
 .rules-wrapper div.stButton > button {
     border: none !important;
     border-bottom: 1px solid #f0f0f0 !important;
@@ -36,21 +57,29 @@ _TABLE_CSS = """
 .rules-wrapper div.stButton > button:hover {
     background: #fee2e2 !important;
     color: #dc2626 !important;
-    border-bottom: 1px solid #f0f0f0 !important;
 }
 </style>
 """
 
 
-def _cell(content: str, bg: str, height: str = "43px", align: str = "left",
-          border_b: bool = True) -> str:
-    bb = "border-bottom:1px solid #f0f0f0;" if border_b else ""
-    ta = f"text-align:{align};"
+def _cell(content: str, bg: str, height: str = "38px", align: str = "left") -> str:
     return (
         f'<div style="background:{bg}; height:{height}; padding:0 12px;'
-        f' display:flex; align-items:center; {ta} {bb} box-sizing:border-box;">'
+        f' display:flex; align-items:center; text-align:{align}; box-sizing:border-box;">'
         f"{content}</div>"
     )
+
+
+def _save_rules(table_id: str, rules: list) -> None:
+    requests.put(f"{API_BASE}/tables/{table_id}", json={"rules": rules}, timeout=5)
+
+
+def _reset_edit_state(table_id: str) -> None:
+    if st.session_state.get("_current_table_id") != table_id:
+        for key in list(st.session_state.keys()):
+            if key.startswith("cond_") or key.startswith("out_"):
+                del st.session_state[key]
+        st.session_state["_current_table_id"] = table_id
 
 
 def render(table_id: str | None = None) -> None:
@@ -59,7 +88,6 @@ def render(table_id: str | None = None) -> None:
         st.info("Aucune table disponible.")
         return
 
-    # Sélecteur de table
     table_map = {t["name"]: t for t in tables}
     default_idx = 0
     if table_id:
@@ -67,11 +95,15 @@ def render(table_id: str | None = None) -> None:
             if t["id"] == table_id:
                 default_idx = i
                 break
+    default_idx = min(default_idx, len(table_map) - 1)
 
     selected_name = st.selectbox(
-        "Table", list(table_map.keys()), index=default_idx, label_visibility="collapsed",
+        "Table", list(table_map.keys()), index=default_idx,
+        key="table_selector", label_visibility="collapsed",
     )
     table = table_map[selected_name]
+    _reset_edit_state(table["id"])
+
     input_cols  = [c for c in table["columns"] if c["role"] == "input"]
     output_cols = [c for c in table["columns"] if c["role"] == "output"]
     rules = table.get("rules", [])
@@ -79,9 +111,9 @@ def render(table_id: str | None = None) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" style="color:#4f46e5; text-decoration:none;">Tables</a>'
-        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" style="color:#4f46e5; text-decoration:none;">'
-        f'{table["name"]}</a> &rsaquo; Règles</p>',
+        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
+        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4f46e5; text-decoration:none;">'
+        f'{_esc(table["name"])}</a> &rsaquo; Règles</p>',
         unsafe_allow_html=True,
     )
 
@@ -110,8 +142,7 @@ def render(table_id: str | None = None) -> None:
         with b2:
             show_import = st.button("↑ Import", use_container_width=True)
         with b3:
-            if st.button("✓  Enregistrer", use_container_width=True, type="primary"):
-                st.toast("Table à jour.", icon="✓")
+            save_clicked = st.button("✓  Enregistrer", use_container_width=True, type="primary")
 
     if show_import:
         uploaded = st.file_uploader("Fichier JSON de règles", type="json")
@@ -131,92 +162,101 @@ def render(table_id: str | None = None) -> None:
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    # ── Tableau des règles ────────────────────────────────────────────────────
     if not input_cols and not output_cols:
         st.info("Cette table n'a pas de colonnes.")
         return
 
-    all_cols = input_cols + output_cols
-    n = len(all_cols)
-    # Proportions : # | cols... | 🗑
-    # La col 🗑 fait ~1 unité, les données ~2.5 chacune, le # ~0.5
+    n = len(input_cols) + len(output_cols)
     col_widths = [0.5] + [2.5] * n + [0.6]
 
     st.markdown(_TABLE_CSS + '<div class="rules-wrapper">', unsafe_allow_html=True)
 
-    # Ligne d'en-tête — noms
+    # ── En-tête noms ─────────────────────────────────────────────────────────
     h_row = st.columns(col_widths)
-    h_row[0].markdown(
-        _cell("#", "#1e293b", height="38px", align="center"),
-        unsafe_allow_html=True,
-    )
+    h_row[0].markdown(_cell("#", "#1e293b", align="center"), unsafe_allow_html=True)
     for i, c in enumerate(input_cols):
         h_row[i + 1].markdown(
-            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{c['name']}</span>",
-                  "#4c3888", height="38px"),
+            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{_esc(c['name'])}</span>", "#4c3888"),
             unsafe_allow_html=True,
         )
     for i, c in enumerate(output_cols):
         h_row[len(input_cols) + 1 + i].markdown(
-            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{c['name']}</span>",
-                  "#15803d", height="38px"),
+            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{_esc(c['name'])}</span>", "#15803d"),
             unsafe_allow_html=True,
         )
-    h_row[-1].markdown(_cell("", "#374151", height="38px"), unsafe_allow_html=True)
+    h_row[-1].markdown(_cell("", "#374151"), unsafe_allow_html=True)
 
-    # Ligne d'en-tête — types
+    # ── En-tête types ─────────────────────────────────────────────────────────
     t_row = st.columns(col_widths)
     t_row[0].markdown(_cell("", "#1e293b", height="24px"), unsafe_allow_html=True)
     for i, c in enumerate(input_cols):
         t_row[i + 1].markdown(
-            _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>",
-                  "#4c3888", height="24px"),
+            _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>", "#4c3888", height="24px"),
             unsafe_allow_html=True,
         )
     for i, c in enumerate(output_cols):
         t_row[len(input_cols) + 1 + i].markdown(
-            _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>",
-                  "#15803d", height="24px"),
+            _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>", "#15803d", height="24px"),
             unsafe_allow_html=True,
         )
     t_row[-1].markdown(_cell("", "#374151", height="24px"), unsafe_allow_html=True)
 
-    # Lignes de données
+    # ── Lignes éditables ──────────────────────────────────────────────────────
     for idx, rule in enumerate(rules, start=1):
-        bg = "#ffffff" if idx % 2 else "#fafafa"
         d_row = st.columns(col_widths)
 
         d_row[0].markdown(
-            _cell(f"<span style='color:#9ca3af; font-size:.88rem;'>{idx}</span>",
-                  bg, align="center"),
+            f'<div style="padding:0 12px; color:#9ca3af; font-size:.88rem; '
+            f'height:43px; display:flex; align-items:center; border-bottom:1px solid #f0f0f0;">{idx}</div>',
             unsafe_allow_html=True,
         )
+
         for i, c in enumerate(input_cols):
-            raw = rule.get("conditions", {}).get(c["name"], "—")
-            d_row[i + 1].markdown(
-                _cell(f"<span style='font-size:.9rem;'>{fmt_condition(raw)}</span>", bg),
-                unsafe_allow_html=True,
-            )
-        for i, c in enumerate(output_cols):
-            val = rule.get("output", {}).get(c["name"], "—")
-            d_row[len(input_cols) + 1 + i].markdown(
-                _cell(fmt_output_html(val), bg),
-                unsafe_allow_html=True,
-            )
-        # Bouton 🗑 dans la dernière colonne
-        with d_row[-1]:
-            if st.button("🗑", key=f"del_{idx - 1}"):
-                new_rules = [r for j, r in enumerate(rules) if j != idx - 1]
-                requests.put(
-                    f"{API_BASE}/tables/{table['id']}",
-                    json={"rules": new_rules}, timeout=5,
+            with d_row[i + 1]:
+                current = rule.get("conditions", {}).get(c["name"], "")
+                if current == "—":
+                    current = ""
+                st.text_input(
+                    c["name"], value=current,
+                    key=f"cond_{idx}_{c['name']}",
+                    placeholder="— (ignorer)",
+                    label_visibility="collapsed",
                 )
+
+        for i, c in enumerate(output_cols):
+            with d_row[len(input_cols) + 1 + i]:
+                current = str(rule.get("output", {}).get(c["name"], ""))
+                st.text_input(
+                    c["name"], value=current,
+                    key=f"out_{idx}_{c['name']}",
+                    label_visibility="collapsed",
+                )
+
+        with d_row[-1]:
+            if st.button("✕", key=f"del_{idx - 1}"):
+                _save_rules(table["id"], [r for j, r in enumerate(rules) if j != idx - 1])
                 st.rerun()
 
-    # Ferme le wrapper CSS
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Bouton Ajouter ────────────────────────────────────────────────────────
+    # ── Sauvegarde de toutes les règles ───────────────────────────────────────
+    if save_clicked:
+        updated_rules = []
+        for idx, rule in enumerate(rules, start=1):
+            conditions = {}
+            for c in input_cols:
+                val = str(st.session_state.get(f"cond_{idx}_{c['name']}", "")).strip()
+                if val:
+                    conditions[c["name"]] = val
+            outputs = {}
+            for c in output_cols:
+                val = str(st.session_state.get(f"out_{idx}_{c['name']}", ""))
+                outputs[c["name"]] = val
+            updated_rules.append({"conditions": conditions, "output": outputs})
+        _save_rules(table["id"], updated_rules)
+        st.toast("Table à jour !", icon="✅")
+
+    # ── Ajouter une règle ─────────────────────────────────────────────────────
     st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
     if st.button("＋  Ajouter une règle", use_container_width=True):
         st.session_state["show_add_rule"] = not st.session_state.get("show_add_rule", False)
@@ -262,7 +302,6 @@ def render(table_id: str | None = None) -> None:
                     st.session_state["show_add_rule"] = False
                     st.rerun()
 
-    # ── Note opérateurs ───────────────────────────────────────────────────────
     st.markdown(
         '<p style="font-size:0.78rem; color:#9ca3af; margin-top:10px;">'
         "Opérateurs supportés : <code>&gt;</code> <code>&lt;</code> <code>=</code>"

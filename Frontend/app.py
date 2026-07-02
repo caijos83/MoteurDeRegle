@@ -51,9 +51,9 @@ elif page == "simulate":
     from pages.simulate import render
     render(table_id)
 
-elif page in ("api", "parametres"):
-    st.markdown(f"## {page.capitalize()}")
-    st.info("Cette section est en cours de développement.")
+elif page == "api":
+    from pages.api_docs import render
+    render()
 
 else:
     st.query_params["page"] = "tables"

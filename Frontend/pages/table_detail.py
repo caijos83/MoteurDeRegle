@@ -1,6 +1,7 @@
 import json
 import streamlit as st
 import requests
+from html import escape as _esc
 from utils.api import api_get, policy_badge_html, fmt_condition, fmt_output_html, score_range, API_BASE
 
 
@@ -15,9 +16,9 @@ def _rules_table_html(table: dict) -> str:
     # Header
     header = f'<th style="{th_base} background:#1e293b; width:40px; text-align:center;">#</th>'
     for c in input_cols:
-        header += f'<th style="{th_base} background:#4c3888;">{c["name"]}</th>'
+        header += f'<th style="{th_base} background:#4c3888;">{_esc(c["name"])}</th>'
     for c in output_cols:
-        header += f'<th style="{th_base} background:#15803d;">{c["name"]}</th>'
+        header += f'<th style="{th_base} background:#15803d;">{_esc(c["name"])}</th>'
 
     # Rows
     rows_html = ""
@@ -59,8 +60,8 @@ def render(table_id: str) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" style="color:#4f46e5; text-decoration:none;">Tables</a>'
-        f' &rsaquo; {table["name"]}</p>',
+        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
+        f' &rsaquo; {_esc(table["name"])}</p>',
         unsafe_allow_html=True,
     )
 
@@ -130,7 +131,7 @@ def render(table_id: str) -> None:
     # ── Delete zone ───────────────────────────────────────────────────────────
     st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
     with st.expander("Zone dangereuse"):
-        if st.button("🗑️ Supprimer cette table", type="primary"):
+        if st.button("✕  Supprimer cette table", type="primary"):
             requests.delete(f"{API_BASE}/tables/{table_id}", timeout=5)
             st.query_params.clear()
             st.query_params["page"] = "tables"
