@@ -335,7 +335,7 @@ def render(table_id: str | None = None) -> None:
         st.rerun()
 
     if st.session_state.get("show_add_rule"):
-        with st.form("add_rule_form", border=True):
+        with st.container(border=True):
             st.markdown("**Conditions** *(vide = toujours vrai)*")
             form_cols = st.columns(len(input_cols)) if input_cols else []
             conditions: dict = {}
@@ -361,7 +361,7 @@ def render(table_id: str | None = None) -> None:
                         v = st.text_input(col["name"], key=f"ar_out_{col['name']}")
                         outputs_vals[col["name"]] = v
 
-            if st.form_submit_button("Ajouter la règle", use_container_width=True, type="primary"):
+            if st.button("Ajouter la règle", use_container_width=True, type="primary", key="mr_add_submit"):
                 clean_cond = {k: v for k, v in conditions.items() if v and str(v).strip()}
                 if not all(str(v).strip() for v in outputs_vals.values()):
                     st.error("Renseignez tous les résultats.")

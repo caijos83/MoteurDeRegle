@@ -440,7 +440,7 @@ def render() -> None:
 
         # ── Formulaire ajout règle — clés basées sur INDEX (fix DuplicateKey) ──
         if st.session_state["nt_show_add"]:
-            with st.form("nt_add_rule", border=True):
+            with st.container(border=True):
                 conditions: dict = {}
                 outputs_v:  dict = {}
 
@@ -459,14 +459,13 @@ def render() -> None:
                                 f'{col["name"]}</p>',
                                 unsafe_allow_html=True,
                             )
-                            # ✅ INDEX-based key — jamais de doublon
                             conditions[col["name"]] = condition_form(col, f"ntar_{ci}")
 
                 if out_cols:
                     st.markdown(
                         '<hr style="margin:12px 0;border-color:#e2e8f0;">'
                         '<p style="font-weight:700;font-size:.92rem;color:#0f172a;margin-bottom:8px;">'
-                        '✅ Résultats</p>',
+                        'Résultats</p>',
                         unsafe_allow_html=True,
                     )
                     oc_list = st.columns(len(out_cols))
@@ -482,12 +481,7 @@ def render() -> None:
                                 v = st.text_input(col["name"], key=f"nto_{oi}")
                                 outputs_v[col["name"]] = v
 
-                submitted = st.form_submit_button(
-                    "✓  Ajouter la règle",
-                    use_container_width=True,
-                    type="primary",
-                )
-                if submitted:
+                if st.button("✓  Ajouter la règle", use_container_width=True, type="primary", key="nt_add_submit"):
                     clean = {k: v for k, v in conditions.items() if v and str(v).strip()}
                     if not all(str(v).strip() for v in outputs_v.values()):
                         st.error("Renseignez tous les champs de résultats.")

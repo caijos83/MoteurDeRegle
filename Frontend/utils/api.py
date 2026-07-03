@@ -124,30 +124,30 @@ def build_condition(col_type: str, operator: str, value, value2="") -> str:
 
 def condition_form(col: dict, key_prefix: str) -> str:
     """
-    Widget de saisie d'une condition DMN pour un formulaire Streamlit.
-
-    IMPORTANT — compatibilité st.form : à l'intérieur d'un formulaire Streamlit,
-    les interactions sur les widgets ne déclenchent pas de rechargement de page.
-    Pour l'opérateur numérique "entre … et …", les deux bornes (v1 et v2) sont
-    TOUJOURS rendues, qu'elles soient utilisées ou non. Ainsi les clés de widget
-    restent stables et l'utilisateur n'a pas à re-sélectionner l'opérateur après soumission.
+    Widget de saisie d'une condition DMN — réactif (hors st.form).
+    v1 et v2 sont toujours rendus pour la stabilité des clés, mais v2
+    est désactivé quand l'opérateur n'est pas 'entre … et …'.
     """
     import streamlit as st
     ct = col["type"]
 
     if ct == "number":
         op = st.selectbox("Opérateur", OPERATORS_NUMBER, key=f"{key_prefix}_op")
-        # Les deux champs sont toujours affichés — seule façon de fonctionner
-        # dans un st.form (pas de rerun mid-form).
-        # build_condition ignore v2 pour tous les opérateurs sauf "entre … et …".
+        is_interval = (op == "entre … et …")
+        is_ignore   = (op == "— (ignorer)")
+
         v1 = st.number_input(
-            "Valeur" if op != "entre … et …" else "De (borne basse)",
-            key=f"{key_prefix}_v1", step=1.0,
+            "De (borne basse)" if is_interval else "Valeur",
+            key=f"{key_prefix}_v1",
+            step=1.0,
+            disabled=is_ignore,
         )
         v2 = st.number_input(
             "À (borne haute)",
-            key=f"{key_prefix}_v2", step=1.0,
-            help="Requis uniquement pour l'opérateur 'entre … et …'",
+            key=f"{key_prefix}_v2",
+            step=1.0,
+            disabled=not is_interval,
+            help="Borne haute de l'intervalle [a..b]",
         )
         return build_condition(ct, op, v1, v2)
 
