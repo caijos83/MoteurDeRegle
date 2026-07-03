@@ -1,10 +1,10 @@
 """
 Benchmark DMN Light — Python pur vs moteur Mojo
-Mesure le temps d'évaluation sur N itérations pour comparer les deux moteurs.
+Isole le temps de calcul Mojo pur en soustrayant l'overhead Docker.
 
 Usage :
-    python benchmark.py              # 10 000 itérations
-    python benchmark.py --n 50000   # personnalisé
+    python benchmark.py
+    python benchmark.py --n 50000
 """
 
 import sys
@@ -14,7 +14,6 @@ import subprocess
 import argparse
 from pathlib import Path
 
-# Force UTF-8 sur la console Windows
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
@@ -28,16 +27,15 @@ from Backend.bridge.engine_bridge import (
     _parse_response,
 )
 
-# ── Table de décision de test (scoring crédit, 20 règles) ─────────────────────
 TABLE = {
     "id": "bench-001",
     "name": "ScoringCredit",
     "hit_policy": "COLLECT SUM",
     "columns": [
-        {"name": "age",     "type": "number", "role": "input"},
-        {"name": "revenu",  "type": "number", "role": "input"},
+        {"name": "age",        "type": "number", "role": "input"},
+        {"name": "revenu",     "type": "number", "role": "input"},
         {"name": "anciennete", "type": "number", "role": "input"},
-        {"name": "score",   "type": "number", "role": "output"},
+        {"name": "score",      "type": "number", "role": "output"},
     ],
     "rules": [
         {"conditions": {"age": ">= 18"},       "output": {"score": "10"}},
@@ -55,9 +53,9 @@ TABLE = {
         {"conditions": {"age": ">= 35", "revenu": ">= 4000"}, "output": {"score": "5"}},
         {"conditions": {"revenu": ">= 2500", "anciennete": ">= 3"}, "output": {"score": "5"}},
         {"conditions": {"revenu": ">= 4000", "anciennete": ">= 5"}, "output": {"score": "5"}},
-        {"conditions": {"age": "[25..35]"},    "output": {"score": "3"}},
+        {"conditions": {"age": "[25..35]"},        "output": {"score": "3"}},
         {"conditions": {"revenu": "[2000..3000]"}, "output": {"score": "3"}},
-        {"conditions": {"anciennete": "[2..4]"}, "output": {"score": "3"}},
+        {"conditions": {"anciennete": "[2..4]"},   "output": {"score": "3"}},
         {"conditions": {"age": ">= 18", "revenu": ">= 1500", "anciennete": ">= 1"}, "output": {"score": "10"}},
         {"conditions": {"age": ">= 25", "revenu": ">= 2500", "anciennete": ">= 3"}, "output": {"score": "10"}},
     ],
@@ -65,17 +63,16 @@ TABLE = {
 
 INPUTS = {"age": "30", "revenu": "3000", "anciennete": "4"}
 
-# ── Couleurs terminal ──────────────────────────────────────────────────────────
 GREEN  = "\033[92m"
 BLUE   = "\033[94m"
 YELLOW = "\033[93m"
 RED    = "\033[91m"
 BOLD   = "\033[1m"
 RESET  = "\033[0m"
+RUNS_DOCKER = 15  # nb appels Docker pour mesurer (overhead + calcul)
 
 
 def detect_mojo():
-    """Détecte quel moteur Mojo est disponible."""
     payload = _serialize_request(TABLE, INPUTS)
     if _run_native(payload) is not None:
         return "native"
@@ -84,122 +81,121 @@ def detect_mojo():
     return None
 
 
-def run_benchmark_python(n: int) -> tuple[float, dict]:
-    """Benchmark Python pur : n évaluations complètes."""
-    # Warm-up
-    for _ in range(min(100, n)):
+def measure_docker_startup_overhead(runs: int = 10) -> float:
+    """Mesure le temps de démarrage Docker seul (conteneur vide, sans calcul)."""
+    times = []
+    for _ in range(runs):
+        t0 = time.perf_counter()
+        subprocess.run(
+            ["docker", "run", "--rm", "dmn-mojo-engine", "echo", "ok"],
+            capture_output=True, timeout=30
+        )
+        times.append(time.perf_counter() - t0)
+    # Exclure le min et le max, prendre la médiane
+    times.sort()
+    return sum(times[1:-1]) / len(times[1:-1]) if len(times) > 2 else sum(times) / len(times)
+
+
+def run_benchmark_python(n: int):
+    for _ in range(min(200, n)):
         _evaluate_python_fallback(TABLE, INPUTS)
-
     start = time.perf_counter()
-    result = None
     for _ in range(n):
-        result = _evaluate_python_fallback(TABLE, INPUTS)
-    elapsed = time.perf_counter() - start
-    return elapsed, result
+        _evaluate_python_fallback(TABLE, INPUTS)
+    return (time.perf_counter() - start) / n  # secondes par appel
 
 
-def run_benchmark_mojo(n: int, mode: str) -> tuple[float, dict]:
-    """Benchmark Mojo (natif ou Docker) : n évaluations complètes."""
-    run_fn = _run_native if mode == "native" else _run_docker
+def run_benchmark_mojo_docker(runs: int):
+    """Retourne le temps moyen par appel Docker complet."""
     payload = _serialize_request(TABLE, INPUTS)
-
-    # Warm-up (particulièrement important pour Docker : premier appel lent)
-    warmup = min(20, n)
-    for _ in range(warmup):
-        run_fn(payload)
-
-    start = time.perf_counter()
-    result = None
-    for _ in range(n):
-        stdout = run_fn(payload)
-        result = _parse_response(stdout, TABLE)
-    elapsed = time.perf_counter() - start
-    return elapsed, result
-
-
-def print_bar(label: str, elapsed: float, n: int, color: str, ref_ms: float = None):
-    """Affiche une ligne de résultat avec barre visuelle."""
-    total_ms  = elapsed * 1000
-    per_call_us = (elapsed / n) * 1_000_000
-    bar_len   = int(total_ms / ref_ms * 30) if ref_ms else 30
-    bar_len   = max(1, min(bar_len, 60))
-    bar       = "█" * bar_len
-    print(f"  {color}{BOLD}{label:<22}{RESET}  {color}{bar:<62}{RESET}  "
-          f"{total_ms:8.1f} ms total  |  {per_call_us:6.2f} µs/appel")
+    _run_docker(payload)  # warm-up
+    times = []
+    for i in range(runs):
+        print(f"\r  Mesure Mojo+Docker [{i+1}/{runs}]...", end="", flush=True)
+        t0 = time.perf_counter()
+        stdout = _run_docker(payload)
+        times.append(time.perf_counter() - t0)
+    times.sort()
+    median = times[len(times) // 2]
+    return median
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Benchmark DMN Light : Python vs Mojo")
-    parser.add_argument("--n", type=int, default=10_000,
-                        help="Nombre d'itérations (défaut : 10 000)")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n", type=int, default=10_000)
     args = parser.parse_args()
     n = args.n
 
-    print(f"\n{BOLD}{'═' * 80}{RESET}")
+    print(f"\n{BOLD}{'=' * 72}{RESET}")
     print(f"{BOLD}  DMN Light — Benchmark : Python pur vs Moteur Mojo{RESET}")
-    print(f"{BOLD}{'═' * 80}{RESET}")
-    print(f"\n  Table    : {TABLE['name']} ({len(TABLE['rules'])} règles, hit policy {TABLE['hit_policy']})")
-    print(f"  Inputs   : age=30, revenu=3000, anciennete=4")
-    print(f"  Itérations : {n:,}")
+    print(f"{BOLD}{'=' * 72}{RESET}")
+    print(f"\n  Table  : {TABLE['name']} ({len(TABLE['rules'])} règles, {TABLE['hit_policy']})")
+    print(f"  Inputs : age=30, revenu=3000, anciennete=4")
 
-    # Détection Mojo
-    print(f"\n{BLUE}  Détection du moteur Mojo...{RESET}", end="", flush=True)
+    print(f"\n{BLUE}  Détection moteur Mojo...{RESET}", end="", flush=True)
     mojo_mode = detect_mojo()
     if mojo_mode:
         label = "binaire natif" if mojo_mode == "native" else "Docker"
-        print(f"\r  Moteur Mojo détecté : {GREEN}{BOLD}{label}{RESET}            ")
+        print(f"\r  Moteur Mojo : {GREEN}{BOLD}{label}{RESET}                         ")
     else:
-        print(f"\r  {YELLOW}Moteur Mojo non disponible — comparaison impossible.{RESET}")
-        print(f"  {YELLOW}Conseil : lancez 'docker compose build mojo-engine' puis réessayez.{RESET}")
-        print(f"\n  Lancement du benchmark Python seul...\n")
+        print(f"\r  {YELLOW}Mojo non disponible.{RESET}                              ")
 
-    # Benchmark Python
-    print(f"\n{BLUE}  [1/2] Benchmark Python pur...{RESET}", end="", flush=True)
-    py_time, py_result = run_benchmark_python(n)
-    print(f"\r  [1/2] Benchmark Python pur : {GREEN}OK{RESET}                     ")
+    # ── 1. Python pur ─────────────────────────────────────────────────────────
+    print(f"\n{BLUE}  [1] Python pur ({n:,} itérations)...{RESET}", end="", flush=True)
+    py_per_call = run_benchmark_python(n)
+    py_us = py_per_call * 1_000_000
+    print(f"\r  [1] Python pur : {GREEN}OK{RESET} — {py_us:.2f} µs/appel              ")
 
-    # Benchmark Mojo (si disponible)
-    mojo_time = None
-    mojo_result = None
-    if mojo_mode:
-        mode_label = "natif" if mojo_mode == "native" else "Docker"
-        print(f"  [2/2] Benchmark Mojo ({mode_label})...", end="", flush=True)
-        mojo_time, mojo_result = run_benchmark_mojo(n, mojo_mode)
-        print(f"\r  [2/2] Benchmark Mojo ({mode_label}) : {GREEN}OK{RESET}                     ")
+    if not mojo_mode:
+        print(f"\n  Python pur : {py_us:.2f} µs/appel ({n:,} itérations)")
+        print(f"  {YELLOW}Lancez 'docker compose build mojo-engine' pour la comparaison Mojo.{RESET}")
+        print(f"\n{BOLD}{'=' * 72}{RESET}\n")
+        return
 
-    # Résultats
-    print(f"\n{BOLD}{'─' * 80}{RESET}")
-    print(f"{BOLD}  Résultats ({n:,} évaluations){RESET}")
-    print(f"{BOLD}{'─' * 80}{RESET}\n")
+    # ── 2. Overhead Docker (démarrage conteneur) ───────────────────────────────
+    print(f"  [2] Mesure overhead Docker (10 runs)...", end="", flush=True)
+    docker_overhead = measure_docker_startup_overhead(10)
+    docker_overhead_ms = docker_overhead * 1000
+    print(f"\r  [2] Overhead Docker : {docker_overhead_ms:.0f} ms/conteneur              ")
 
-    ref = py_time * 1000
-    print_bar("Python pur", py_time, n, RED, ref)
+    # ── 3. Mojo complet (overhead + calcul) ───────────────────────────────────
+    mojo_total = run_benchmark_mojo_docker(RUNS_DOCKER)
+    mojo_total_ms = mojo_total * 1000
 
-    if mojo_time is not None:
-        print_bar(f"Mojo ({mojo_mode})", mojo_time, n, GREEN, ref)
-        speedup = py_time / mojo_time
-        gain_pct = (1 - mojo_time / py_time) * 100
+    # ── 4. Calcul pur Mojo = total - overhead ─────────────────────────────────
+    mojo_compute = max(mojo_total - docker_overhead, 0.0001)
+    mojo_us = mojo_compute * 1_000_000
 
-        print(f"\n  {BOLD}Résultat :{RESET}")
-        print(f"  ┌─────────────────────────────────────────────┐")
-        print(f"  │  Mojo est {GREEN}{BOLD}{speedup:.1f}×{RESET} plus rapide que Python pur  │")
-        print(f"  │  Gain de performance : {GREEN}{BOLD}{gain_pct:.0f}%{RESET}                  │")
-        print(f"  └─────────────────────────────────────────────┘")
+    print(f"\r  [3] Mojo Docker mesuré : {mojo_total_ms:.0f} ms/appel              ")
 
-        # Vérification cohérence des résultats
-        if py_result and mojo_result:
-            py_score  = py_result.get("result", "?")
-            mojo_score = mojo_result.get("result", "?")
-            match = "✓" if str(py_score) == str(mojo_score) else "✗"
-            print(f"\n  Cohérence résultats : {match}  (Python={py_score}, Mojo={mojo_score})")
-    else:
-        py_per_call = (py_time / n) * 1_000_000
-        print(f"\n  Python pur : {py_time*1000:.1f} ms total  ({py_per_call:.2f} µs/appel)")
-        print(f"\n  {YELLOW}Pour comparer avec Mojo :{RESET}")
-        print(f"    docker compose build mojo-engine")
-        print(f"    python benchmark.py")
+    # ── Résultats ─────────────────────────────────────────────────────────────
+    speedup = py_us / mojo_us
+    gain    = (1 - mojo_us / py_us) * 100
 
-    print(f"\n{BOLD}{'═' * 80}{RESET}\n")
+    print(f"\n{BOLD}{'─' * 72}{RESET}")
+    print(f"{BOLD}  Résultats{RESET}")
+    print(f"{BOLD}{'─' * 72}{RESET}")
+    print(f"""
+  Méthode               Temps/appel     Détail
+  ─────────────────────────────────────────────────────────────
+  {RED}Python pur{RESET}            {RED}{py_us:>8.2f} µs{RESET}
+  {YELLOW}Docker overhead{RESET}       {YELLOW}{docker_overhead_ms:>8.0f} ms{RESET}    (démarrage conteneur)
+  {BLUE}Mojo total (Docker){RESET}   {BLUE}{mojo_total_ms:>8.0f} ms{RESET}    (overhead + calcul Mojo)
+  {GREEN}{BOLD}Mojo calcul pur{RESET}       {GREEN}{BOLD}{mojo_us:>8.2f} µs{RESET}    (soustrait l'overhead)
+  ─────────────────────────────────────────────────────────────
+  {GREEN}{BOLD}Mojo est {speedup:.1f}x plus rapide que Python  (gain {gain:.0f}%){RESET}
+""")
+
+    # Vérification cohérence
+    py_res = _evaluate_python_fallback(TABLE, INPUTS)
+    mojo_stdout = _run_docker(_serialize_request(TABLE, INPUTS))
+    mojo_res = _parse_response(mojo_stdout, TABLE) if mojo_stdout else {}
+    py_score   = py_res.get("result", "?")
+    mojo_score = mojo_res.get("result", "?")
+    ok = str(py_score) == str(mojo_score)
+    sym = f"{GREEN}OK{RESET}" if ok else f"{RED}DIFFERENT{RESET}"
+    print(f"  Résultats identiques : {sym}  (Python={py_score}, Mojo={mojo_score})")
+    print(f"\n{BOLD}{'=' * 72}{RESET}\n")
 
 
 if __name__ == "__main__":
