@@ -10,6 +10,7 @@ le bridge — `find`/`split(sep, 1)` ne regarde donc que le premier, même si
 la valeur contient elle-même un `=`, comme dans `!=`).
 
 Protocole stdin :
+    BENCHMARK       <n>             (optionnel — active le mode benchmark interne)
     HIT_POLICY      <FIRST|COLLECT_SUM>
     OUTPUT_COLUMNS  <col1>  <col2> ...
     RULES           <n>
@@ -18,9 +19,14 @@ Protocole stdin :
         OUTPUT      <col>=<valeur>  <col>=<valeur> ...
     INPUTS          <col>=<valeur>  <col>=<valeur> ...
 
-Protocole stdout :
+Protocole stdout (mode normal) :
     FIRST        -> MATCHED <0|1>  puis  OUTPUT <col>=<valeur> ...  si matché
     COLLECT_SUM  -> TOTAL <float>  puis  MATCHED_COUNT <n>
+
+Protocole stdout (mode BENCHMARK) :
+    BENCH_TIME      <secondes>   (temps total pour n itérations, mesuré en interne)
+    BENCH_ITERS     <n>
+    BENCH_CHECKSUM  <int>        (empêche l'optimiseur d'éliminer la boucle)
 """
 
 from std.collections import Dict, List
@@ -68,6 +74,7 @@ fn main() raises:
     var output_columns = List[String]()
     var rules = List[Rule]()
     var inputs = Dict[String, String]()
+    var n_bench: Int = 0
 
     var i = 0
     while i < len(lines):
@@ -78,7 +85,9 @@ fn main() raises:
         var parts = split_owned(line, "\t")
         var tag = parts[0]
 
-        if tag == "HIT_POLICY":
+        if tag == "BENCHMARK":
+            n_bench = atol(parts[1])
+        elif tag == "HIT_POLICY":
             hit_policy = parts[1]
         elif tag == "OUTPUT_COLUMNS":
             for j in range(1, len(parts)):
@@ -97,6 +106,24 @@ fn main() raises:
                 rules.append(Rule(conditions^, output^))
         elif tag == "INPUTS":
             inputs = parse_kv_fields(parts, 1)
+
+    # Mode benchmark interne : Mojo mesure son propre temps sans overhead IPC
+    if n_bench > 0:
+        var time_mod = Python.import_module("time")
+        var t0 = time_mod.perf_counter()
+        var accumulator: Int = 0
+        for _k in range(n_bench):
+            if hit_policy == "FIRST":
+                var r = evaluate_first(rules, inputs)
+                accumulator += len(r)
+            elif hit_policy == "COLLECT_SUM":
+                var r = evaluate_collect_sum(rules, inputs, output_columns)
+                accumulator += Int(r[1])
+        var elapsed_py = time_mod.perf_counter() - t0
+        print("BENCH_TIME\t" + String(elapsed_py))
+        print("BENCH_ITERS\t" + String(n_bench))
+        print("BENCH_CHECKSUM\t" + String(accumulator))
+        return
 
     if hit_policy == "FIRST":
         var result = evaluate_first(rules, inputs)
