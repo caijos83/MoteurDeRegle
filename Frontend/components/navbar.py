@@ -5,7 +5,7 @@ _MAIN_TABS = [("Tables", "tables"), ("API", "api")]
 _CONTEXT_LABEL = {
     "new_table":    "Nouvelle table",
     "manage_rules": "Édition",
-    "detail":       "Détail",
+    "detail":       "Détails",
     "simulate":     "Exécution",
 }
 
@@ -64,7 +64,7 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     text-decoration: none;
     letter-spacing: -0.01em;
 }}
-.dmn-logo span {{ color: #2563eb; font-weight: 700; }}
+.dmn-logo span {{ color: #4c8c6b; font-weight: 700; }}
 .dmn-tabs {{
     display: flex;
     flex: 1;
@@ -86,7 +86,7 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
 }}
 .nav-active {{
     color: #0f172a !important;
-    border-bottom: 2px solid #2563eb !important;
+    border-bottom: 2px solid #4c8c6b !important;
     font-weight: 600;
 }}
 

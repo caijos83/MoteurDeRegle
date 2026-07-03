@@ -89,8 +89,8 @@ def render(table_id: str | None = None) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
-        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4f46e5; text-decoration:none;">'
+        f'<a href="?page=tables" target="_self" style="color:#4c8c6b; text-decoration:none;">Tables</a>'
+        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4c8c6b; text-decoration:none;">'
         f'{_esc(table["name"])}</a> &rsaquo; Exécution</p>',
         unsafe_allow_html=True,
     )

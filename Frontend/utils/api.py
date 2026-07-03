@@ -74,7 +74,7 @@ def fmt_output_html(val: str) -> str:
 def policy_badge_html(policy: str) -> str:
     if policy == "FIRST":
         return (
-            '<span style="background:#dbeafe; color:#1d4ed8; border-radius:20px;'
+            '<span style="background:#d4ece0; color:#1b3a2f; border-radius:20px;'
             ' padding:3px 12px; font-size:0.78em; font-weight:600;">First</span>'
         )
     return (

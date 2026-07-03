@@ -12,7 +12,7 @@ _PAGE_CSS = """
 <style>
 /* ════════════════════════════════════════════════
    PALETTE — bleu ardoise sobre et pro
-   --clr-primary   : #2563eb  (bleu clair, actions)
+   --clr-primary   : #4c8c6b  (bleu clair, actions)
    --clr-success   : #059669  (vert, OUT)
    --clr-danger    : #dc2626  (rouge, Enregistrer)
    --clr-surface   : #f8fafc  (fond cartes)
@@ -41,9 +41,9 @@ div[data-baseweb="select"] {
 }
 div[data-testid="stTextInput"] input:focus,
 div[data-testid="stTextArea"] textarea:focus {
-    border-color: #2563eb !important;
+    border-color: #4c8c6b !important;
     background: #fff !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+    box-shadow: 0 0 0 3px rgba(76,140,107,.12) !important;
 }
 
 /* ── BOUTONS GLOBAUX — reset complet ── */
@@ -105,9 +105,9 @@ div[data-testid="stRadio"] [data-baseweb="radio"] {
     transition: all 0.15s !important;
 }
 div[data-testid="stRadio"] [data-baseweb="radio"]:has(input:checked) {
-    border-color: #2563eb !important;
-    background: #eff6ff !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.10) !important;
+    border-color: #4c8c6b !important;
+    background: #edf7f1 !important;
+    box-shadow: 0 0 0 3px rgba(76,140,107,.10) !important;
 }
 div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { display: none !important; }
 div[data-testid="stRadio"] [data-baseweb="radio"] p {
@@ -171,7 +171,7 @@ def render() -> None:
     # ── Breadcrumb ───────────────────────────────────────────────────────────
     st.markdown(
         '<p style="font-size:.82rem;color:#94a3b8;margin-bottom:6px;font-weight:500;">'
-        '<a href="?page=tables" target="_self" style="color:#2563eb;text-decoration:none;">Tables</a>'
+        '<a href="?page=tables" target="_self" style="color:#4c8c6b;text-decoration:none;">Tables</a>'
         ' &nbsp;/&nbsp; Nouvelle table</p>',
         unsafe_allow_html=True,
     )
@@ -285,8 +285,8 @@ def render() -> None:
             for i, col in enumerate(st.session_state["nt_columns"]):
                 ft = _TYPE_FR.get(col["type"], col["type"])
                 is_in = col["role"] == "input"
-                badge_bg  = "#dbeafe" if is_in else "#dcfce7"
-                badge_clr = "#3451a2" if is_in else "#059669"
+                badge_bg  = "#d4ece0" if is_in else "#dcfce7"
+                badge_clr = "#1b3a2f" if is_in else "#059669"
                 badge_txt = "IN"      if is_in else "OUT"
 
                 row = st.columns([0.7, 2.8, 1.8, 0.6])
@@ -354,8 +354,8 @@ def render() -> None:
 
     if not in_cols and not out_cols:
         st.markdown(
-            '<div style="background:#f0f9ff;border:1.5px dashed #bfdbfe;border-radius:12px;'
-            'padding:1.2rem 1.5rem;text-align:center;color:#2563eb;font-size:.9rem;">'
+            '<div style="background:#f0f9f4;border:1.5px dashed #8fbf9f;border-radius:12px;'
+            'padding:1.2rem 1.5rem;text-align:center;color:#4c8c6b;font-size:.9rem;">'
             'Ajoutez des colonnes ci-dessus pour commencer à définir vos règles.</div>',
             unsafe_allow_html=True,
         )
@@ -387,7 +387,7 @@ def render() -> None:
         for i, c in enumerate(in_cols):
             h[i+1].markdown(_cell(
                 f"<span style='font-size:.82rem;font-weight:700;color:#fff;'>{_esc(c['name'])}</span>",
-                "#2563eb", h="40px", bb=False), unsafe_allow_html=True)
+                "#1b3a2f", h="40px", bb=False), unsafe_allow_html=True)
         for i, c in enumerate(out_cols):
             h[len(in_cols)+1+i].markdown(_cell(
                 f"<span style='font-size:.82rem;font-weight:700;color:#fff;'>{_esc(c['name'])}</span>",
@@ -399,8 +399,8 @@ def render() -> None:
         t[0].markdown(_cell("", "#eef2f7", h="22px", bb=True), unsafe_allow_html=True)
         for i, c in enumerate(in_cols):
             t[i+1].markdown(_cell(
-                f"<span style='font-size:.72rem;color:#93c5fd;'>{_TYPE_FR.get(c['type'])}</span>",
-                "#3b82f6", h="22px"), unsafe_allow_html=True)
+                f"<span style='font-size:.72rem;color:#8fbf9f;'>{_TYPE_FR.get(c['type'])}</span>",
+                "#4c8c6b", h="22px"), unsafe_allow_html=True)
         for i, c in enumerate(out_cols):
             t[len(in_cols)+1+i].markdown(_cell(
                 f"<span style='font-size:.72rem;color:#6ee7b7;'>{_TYPE_FR.get(c['type'])}</span>",
@@ -455,7 +455,7 @@ def render() -> None:
                     for ci, (fc, col) in enumerate(zip(fc_list, in_cols)):
                         with fc:
                             st.markdown(
-                                f'<p style="font-size:.85rem;font-weight:600;color:#2563eb;margin-bottom:4px;">'
+                                f'<p style="font-size:.85rem;font-weight:600;color:#4c8c6b;margin-bottom:4px;">'
                                 f'{col["name"]}</p>',
                                 unsafe_allow_html=True,
                             )

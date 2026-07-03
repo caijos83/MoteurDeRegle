@@ -15,7 +15,7 @@ _HOME_CSS = """
     margin: 0 !important;
     line-height: 1.15 !important;
 }
-.home-title span { color: #2563eb !important; }
+.home-title span { color: #4c8c6b !important; }
 .home-tagline {
     font-size: 1.1rem !important;
     color: #64748b !important;
@@ -38,7 +38,7 @@ _HOME_CSS = """
     min-width: 150px;
     text-align: center;
 }
-.home-stat .num { font-size: 1.9rem !important; font-weight: 800 !important; color: #2563eb !important; margin: 0 !important; }
+.home-stat .num { font-size: 1.9rem !important; font-weight: 800 !important; color: #4c8c6b !important; margin: 0 !important; }
 .home-stat .lbl {
     font-size: 0.76rem !important; color: #64748b !important; text-transform: uppercase;
     letter-spacing: 0.05em; margin-top: 4px !important;
@@ -63,7 +63,7 @@ _HOME_CSS = """
     display: inline-flex;
     width: 28px; height: 28px;
     align-items: center; justify-content: center;
-    background: #2563eb; color: #fff;
+    background: #4c8c6b; color: #fff;
     border-radius: 50%;
     font-weight: 700; font-size: 0.85rem;
     margin-bottom: 10px;
@@ -73,13 +73,13 @@ _HOME_CSS = """
 
 /* Bouton principal de la page Home — bleu, cohérent avec le reste de l'app */
 div.stButton > button[kind="primary"] {
-    background: #2563eb !important;
+    background: #4c8c6b !important;
     border: none !important;
     color: #fff !important;
     font-weight: 600 !important;
 }
 div.stButton > button[kind="primary"]:hover {
-    background: #1d4ed8 !important;
+    background: #1b3a2f !important;
 }
 </style>
 """

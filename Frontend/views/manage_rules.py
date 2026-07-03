@@ -35,7 +35,7 @@ _TABLE_CSS = """
     box-shadow: none !important;
 }
 .rules-wrapper [data-testid="stTextInput"] > div > div > input:focus {
-    border-bottom: 1px solid #4f46e5 !important;
+    border-bottom: 1px solid #4c8c6b !important;
     box-shadow: none !important;
 }
 .rules-wrapper [data-testid="stTextInput"] {
@@ -152,8 +152,8 @@ def render(table_id: str | None = None) -> None:
     # ── Breadcrumb ────────────────────────────────────────────────────────────
     st.markdown(
         f'<p style="font-size:0.9rem; color:#6b7280; margin-bottom:4px;">'
-        f'<a href="?page=tables" target="_self" style="color:#4f46e5; text-decoration:none;">Tables</a>'
-        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4f46e5; text-decoration:none;">'
+        f'<a href="?page=tables" target="_self" style="color:#4c8c6b; text-decoration:none;">Tables</a>'
+        f' &rsaquo; <a href="?page=detail&table_id={table["id"]}" target="_self" style="color:#4c8c6b; text-decoration:none;">'
         f'{_esc(table["name"])}</a> &rsaquo; Règles</p>',
         unsafe_allow_html=True,
     )
@@ -236,7 +236,7 @@ def render(table_id: str | None = None) -> None:
     h_row[0].markdown(_cell("#", "#1e293b", align="center"), unsafe_allow_html=True)
     for i, c in enumerate(input_cols):
         h_row[i + 1].markdown(
-            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{_esc(c['name'])}</span>", "#4c3888"),
+            _cell(f"<span style='font-size:.83rem; font-weight:600; color:#fff;'>{_esc(c['name'])}</span>", "#1b3a2f"),
             unsafe_allow_html=True,
         )
     with h_row[IN_BTN]:
@@ -255,7 +255,7 @@ def render(table_id: str | None = None) -> None:
     t_row[0].markdown(_cell("", "#1e293b", height="24px"), unsafe_allow_html=True)
     for i, c in enumerate(input_cols):
         t_row[i + 1].markdown(
-            _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>", "#4c3888", height="24px"),
+            _cell(f"<span style='font-size:.74rem; color:#d1d5db;'>{_TYPE_FR.get(c['type'])}</span>", "#1b3a2f", height="24px"),
             unsafe_allow_html=True,
         )
     t_row[IN_BTN].markdown(_cell("", "#ffffff", height="24px"), unsafe_allow_html=True)

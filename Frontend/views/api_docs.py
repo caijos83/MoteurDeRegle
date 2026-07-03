@@ -62,7 +62,7 @@ def render() -> None:
         ]
 
         method_color = {
-            "GET":    ("#1d4ed8", "#dbeafe"),
+            "GET":    ("#1b3a2f", "#d4ece0"),
             "POST":   ("#166534", "#dcfce7"),
             "PUT":    ("#92400e", "#fef3c7"),
             "DELETE": ("#991b1b", "#fee2e2"),
