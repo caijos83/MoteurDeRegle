@@ -34,12 +34,12 @@ st.markdown("""
     color: inherit !important;
     text-decoration: none !important;
 }
-/* Breadcrumbs et liens inline dans les pages */
-[data-testid="stMarkdownContainer"] a[href] {
+/* Breadcrumbs et liens inline dans les pages — exclut le logo navbar */
+[data-testid="stMarkdownContainer"] a[href]:not(.dmn-logo) {
     color: #4c8c6b !important;
     text-decoration: none !important;
 }
-[data-testid="stMarkdownContainer"] a[href]:hover {
+[data-testid="stMarkdownContainer"] a[href]:not(.dmn-logo):hover {
     text-decoration: underline !important;
 }
 </style>
