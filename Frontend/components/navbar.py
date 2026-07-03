@@ -65,7 +65,7 @@ header[data-testid="stHeader"]          {{ display: none !important; }}
     gap: 2rem;
 }}
 .dmn-logo {{
-    color: #1b3a2f !important;
+    color: #0f172a !important;
     font-size: 1.2rem;
     font-weight: 800;
     white-space: nowrap;
