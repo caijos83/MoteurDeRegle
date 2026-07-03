@@ -19,7 +19,8 @@ def render_navbar(current_page: str) -> None:
             f'<span class="nav-link nav-active">{context}</span>'
         )
     else:
-        active = current_page if current_page in dict(_MAIN_TABS) else ("" if current_page == "home" else "tables")
+        _tab_keys = {key for _, key in _MAIN_TABS}
+        active = current_page if current_page in _tab_keys else ""
         tabs_html = ""
         for label, key in _MAIN_TABS:
             if key == active:
@@ -33,11 +34,11 @@ def render_navbar(current_page: str) -> None:
     st.markdown(f"""
 <style>
 /* ── Reset Streamlit ── */
-header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
+header[data-testid="stHeader"]          {{ display: none !important; }}
 [data-testid="stSidebar"],
 [data-testid="collapsedControl"]        {{ display: none !important; }}
 .block-container                        {{ padding-top: 72px !important; max-width: 100% !important; }}
-#MainMenu, footer                       {{ visibility: hidden !important; }}
+#MainMenu, footer                       {{ display: none !important; }}
 
 /* ── Reset liens Streamlit dans la navbar ── */
 .dmn-navbar a,
@@ -64,7 +65,7 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     gap: 2rem;
 }}
 .dmn-logo {{
-    color: #0f172a !important;
+    color: #1b3a2f !important;
     font-size: 1.2rem;
     font-weight: 800;
     white-space: nowrap;
@@ -80,7 +81,7 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     align-items: stretch;
 }}
 .nav-link {{
-    color: #64748b !important;
+    color: #c9a66b !important;
     text-decoration: none !important;
     border-bottom: 2px solid transparent;
     padding: 0 16px;
@@ -88,12 +89,14 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     display: flex;
     align-items: center;
     font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
 }}
 .nav-link:hover {{
-    color: #0f172a !important;
+    color: #a07a45 !important;
 }}
 .nav-active {{
-    color: #0f172a !important;
+    color: #1b3a2f !important;
     border-bottom: 2px solid #4c8c6b !important;
     font-weight: 600;
 }}
