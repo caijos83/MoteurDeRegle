@@ -39,6 +39,14 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
 .block-container                        {{ padding-top: 72px !important; max-width: 100% !important; }}
 #MainMenu, footer                       {{ visibility: hidden !important; }}
 
+/* ── Reset liens Streamlit dans la navbar ── */
+.dmn-navbar a,
+.dmn-navbar a:visited,
+.dmn-navbar a:hover,
+.dmn-navbar a:active {{
+    text-decoration: none !important;
+}}
+
 /* ── Navbar ── */
 .dmn-navbar {{
     position: fixed;
@@ -56,15 +64,15 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     gap: 2rem;
 }}
 .dmn-logo {{
-    color: #0f172a;
+    color: #0f172a !important;
     font-size: 1.2rem;
     font-weight: 800;
     white-space: nowrap;
     margin-right: 0.5rem;
-    text-decoration: none;
+    text-decoration: none !important;
     letter-spacing: -0.01em;
 }}
-.dmn-logo span {{ color: #4c8c6b; font-weight: 700; }}
+.dmn-logo span {{ color: #4c8c6b !important; font-weight: 700; }}
 .dmn-tabs {{
     display: flex;
     flex: 1;
@@ -72,8 +80,8 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     align-items: stretch;
 }}
 .nav-link {{
-    color: #64748b;
-    text-decoration: none;
+    color: #64748b !important;
+    text-decoration: none !important;
     border-bottom: 2px solid transparent;
     padding: 0 16px;
     height: 56px;
@@ -82,7 +90,7 @@ header[data-testid="stHeader"]          {{ visibility: hidden !important; }}
     font-size: 0.95rem;
 }}
 .nav-link:hover {{
-    color: #0f172a;
+    color: #0f172a !important;
 }}
 .nav-active {{
     color: #0f172a !important;

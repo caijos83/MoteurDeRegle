@@ -26,6 +26,25 @@ table_id = params.get("table_id", None)
 
 render_navbar(page)
 
+# CSS global — écrase le style <a> bleu natif de Streamlit
+st.markdown("""
+<style>
+/* Neutralise les liens bleus Streamlit dans les éléments markdown custom */
+[data-testid="stMarkdownContainer"] a {
+    color: inherit !important;
+    text-decoration: none !important;
+}
+/* Breadcrumbs et liens inline dans les pages */
+[data-testid="stMarkdownContainer"] a[href] {
+    color: #4c8c6b !important;
+    text-decoration: none !important;
+}
+[data-testid="stMarkdownContainer"] a[href]:hover {
+    text-decoration: underline !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ── Pages ─────────────────────────────────────────────────────────────────────
 if page == "home":
     from views.home import render
