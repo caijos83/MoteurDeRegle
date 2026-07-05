@@ -161,6 +161,23 @@ def render() -> None:
                     st.rerun()
             with a3:
                 if st.button("✕", key=f"del_{t['id']}", help="Supprimer"):
-                    requests.delete(f"{API_BASE}/tables/{t['id']}", timeout=5)
-                    st.session_state.pop(f"chk_{t['id']}", None)
+                    st.session_state["confirm_single_delete"] = t["id"]
                     st.rerun()
+
+    # ── Confirmation suppression individuelle ─────────────────────────────────
+    pending_id = st.session_state.get("confirm_single_delete")
+    if pending_id:
+        pending_table = next((t for t in tables if t["id"] == pending_id), None)
+        name = pending_table["name"] if pending_table else pending_id
+        st.warning(f'Supprimer définitivement la table **{name}** ? Cette action est irréversible.')
+        cd1, cd2, _ = st.columns([1, 1, 4])
+        with cd1:
+            if st.button("Confirmer", type="primary", key="confirm_single_yes"):
+                requests.delete(f"{API_BASE}/tables/{pending_id}", timeout=5)
+                st.session_state.pop(f"chk_{pending_id}", None)
+                st.session_state.pop("confirm_single_delete", None)
+                st.rerun()
+        with cd2:
+            if st.button("Annuler", key="confirm_single_no"):
+                st.session_state.pop("confirm_single_delete", None)
+                st.rerun()

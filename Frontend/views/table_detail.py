@@ -131,8 +131,21 @@ def render(table_id: str) -> None:
     # ── Delete zone ───────────────────────────────────────────────────────────
     st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
     with st.expander("Zone dangereuse"):
-        if st.button("✕  Supprimer cette table", type="primary"):
-            requests.delete(f"{API_BASE}/tables/{table_id}", timeout=5)
-            st.query_params.clear()
-            st.query_params["page"] = "tables"
-            st.rerun()
+        if not st.session_state.get("confirm_delete_detail"):
+            if st.button("✕  Supprimer cette table", type="primary"):
+                st.session_state["confirm_delete_detail"] = True
+                st.rerun()
+        else:
+            st.warning(f'Supprimer définitivement **{table["name"]}** ? Cette action est irréversible.')
+            cd1, cd2, _ = st.columns([1, 1, 4])
+            with cd1:
+                if st.button("Confirmer", type="primary", key="detail_del_yes"):
+                    requests.delete(f"{API_BASE}/tables/{table_id}", timeout=5)
+                    st.session_state.pop("confirm_delete_detail", None)
+                    st.query_params.clear()
+                    st.query_params["page"] = "tables"
+                    st.rerun()
+            with cd2:
+                if st.button("Annuler", key="detail_del_no"):
+                    st.session_state.pop("confirm_delete_detail", None)
+                    st.rerun()
