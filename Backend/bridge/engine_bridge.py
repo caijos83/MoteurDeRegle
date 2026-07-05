@@ -9,6 +9,8 @@ import json
 import subprocess
 from pathlib import Path
 
+from .dmn_matcher import match_condition, rule_matches as _rule_matches_canonical
+
 MOJO_BINARY = Path(__file__).parent.parent / "engine" / "evaluator"
 MOJO_DOCKER_IMAGE = "dmn-mojo-engine"  # construite via Backend/engine/Dockerfile
 
@@ -139,10 +141,11 @@ def _evaluate_python_fallback(table: dict, inputs: dict) -> dict:
     """
     hit_policy = table.get("hit_policy", "FIRST")
     rules = table.get("rules", [])
+    col_types = {c["name"]: c["type"] for c in table.get("columns", [])}
 
     if hit_policy == "FIRST":
         for rule in rules:
-            if _rule_matches(rule["conditions"], inputs):
+            if _rule_matches(rule["conditions"], inputs, col_types):
                 return {"result": rule["output"], "hit_policy": "FIRST"}
         return {"result": None, "hit_policy": "FIRST"}
 
@@ -151,7 +154,7 @@ def _evaluate_python_fallback(table: dict, inputs: dict) -> dict:
         matched = []
         output_cols = [c["name"] for c in table["columns"] if c["role"] == "output"]
         for rule in rules:
-            if _rule_matches(rule["conditions"], inputs):
+            if _rule_matches(rule["conditions"], inputs, col_types):
                 for col in output_cols:
                     total += float(rule["output"].get(col, 0))
                 matched.append(rule)
@@ -160,57 +163,6 @@ def _evaluate_python_fallback(table: dict, inputs: dict) -> dict:
     raise ValueError(f"Hit policy non supportée : {hit_policy}")
 
 
-def _rule_matches(conditions: dict, inputs: dict) -> bool:
-    """Vérifie si toutes les conditions d'une règle matchent les inputs."""
-    for col, expr in conditions.items():
-        if col not in inputs:
-            return False
-        if not _match_condition(str(inputs[col]), str(expr)):
-            return False
-    return True
-
-
-def _match_condition(value: str, expr: str) -> bool:
-    """Évalue une expression DMN sur une valeur."""
-    expr = expr.strip()
-
-    # Intervalle [a..b]
-    if expr.startswith("[") and ".." in expr:
-        parts = expr.strip("[]").split("..")
-        try:
-            v = float(value)
-            low, high = float(parts[0]), float(parts[1].rstrip("["))
-            if expr.endswith("["):
-                return low <= v < high
-            return low <= v <= high
-        except ValueError:
-            return False
-
-    # Liste ["v1","v2"]
-    if expr.startswith("[") and expr.endswith("]"):
-        try:
-            items = json.loads(expr)
-            return value in [str(i) for i in items]
-        except json.JSONDecodeError:
-            return False
-
-    # Comparaisons
-    try:
-        v = float(value)
-        if expr.startswith(">="):
-            return v >= float(expr[2:].strip())
-        if expr.startswith("<="):
-            return v <= float(expr[2:].strip())
-        if expr.startswith(">"):
-            return v > float(expr[1:].strip())
-        if expr.startswith("<"):
-            return v < float(expr[1:].strip())
-    except ValueError:
-        pass
-
-    if expr.startswith("!="):
-        return value != expr[2:].strip()
-    if expr.startswith("="):
-        return value == expr[1:].strip()
-
-    return value == expr
+def _rule_matches(conditions: dict, inputs: dict, col_types: dict | None = None) -> bool:
+    """Délègue au module canonique dmn_matcher."""
+    return _rule_matches_canonical({"conditions": conditions}, inputs, col_types)

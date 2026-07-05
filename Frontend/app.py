@@ -6,7 +6,10 @@ Point d'entrée unique : lit le query param ?page= et route vers le bon module.
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(__file__))
+_FRONTEND_DIR = os.path.dirname(__file__)
+_PROJECT_ROOT = os.path.dirname(_FRONTEND_DIR)
+sys.path.insert(0, _FRONTEND_DIR)
+sys.path.insert(0, _PROJECT_ROOT)  # permet d'importer Backend.*
 
 import streamlit as st
 

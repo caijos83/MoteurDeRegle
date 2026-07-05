@@ -5,11 +5,10 @@ dans les colonnes et les règles de la table de décision.
 """
 import pytest
 from pydantic import ValidationError
-import sys
-sys.path.insert(0, "/home/cerinekerrar01/projet_ppd/MoteurDeRegle")
 
 from API.rest.routes.tables import Column, Rule, TableCreate
 from Backend.bridge.engine_bridge import _evaluate_python_fallback
+from Backend.bridge.dmn_matcher import match_condition as _match_condition
 
 
 # ─────────────────────────────────────────────
@@ -21,28 +20,22 @@ class TestTypeNumber:
         assert col.type == "number"
 
     def test_number_accepte_entier(self):
-        """Un entier doit matcher une condition numérique."""
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("18", ">= 18")
+        assert _match_condition(">= 18", "18", "number")
 
     def test_number_accepte_decimal(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("18.5", ">= 18")
+        assert _match_condition(">= 18", "18.5", "number")
 
     def test_number_intervalle(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("50", "[0..100]")
-        assert not _match_condition("150", "[0..100]")
+        assert _match_condition("[0..100]", "50", "number")
+        assert not _match_condition("[0..100]", "150", "number")
 
     def test_number_valeur_negative(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("-5", "< 0")
-        assert not _match_condition("-5", ">= 0")
+        assert _match_condition("< 0", "-5", "number")
+        assert not _match_condition(">= 0", "-5", "number")
 
     def test_number_zero(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("0", "= 0")
-        assert not _match_condition("0", "> 0")
+        assert _match_condition("= 0", "0", "number")
+        assert not _match_condition("> 0", "0", "number")
 
 
 # ─────────────────────────────────────────────
@@ -54,24 +47,20 @@ class TestTypeText:
         assert col.type == "text"
 
     def test_text_egalite_directe(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("premium", "premium")
-        assert not _match_condition("basic", "premium")
+        assert _match_condition("premium", "premium", "text")
+        assert not _match_condition("premium", "basic", "text")
 
     def test_text_liste_valeurs(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("or", '["or", "and", "not"]')
-        assert not _match_condition("xor", '["or", "and", "not"]')
+        assert _match_condition('["or", "and", "not"]', "or", "text")
+        assert not _match_condition('["or", "and", "not"]', "xor", "text")
 
     def test_text_different(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("basic", "!= premium")
-        assert not _match_condition("premium", "!= premium")
+        assert _match_condition("!= premium", "basic", "text")
+        assert not _match_condition("!= premium", "premium", "text")
 
     def test_text_case_sensitive(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert not _match_condition("Premium", "premium")
-        assert not _match_condition("PREMIUM", "premium")
+        assert not _match_condition("premium", "Premium", "text")
+        assert not _match_condition("premium", "PREMIUM", "text")
 
 
 # ─────────────────────────────────────────────
@@ -83,18 +72,15 @@ class TestTypeBoolean:
         assert col.type == "boolean"
 
     def test_boolean_true(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("true", "true")
-        assert not _match_condition("false", "true")
+        assert _match_condition("true", "true", "boolean")
+        assert not _match_condition("true", "false", "boolean")
 
     def test_boolean_false(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("false", "false")
-        assert not _match_condition("true", "false")
+        assert _match_condition("false", "false", "boolean")
+        assert not _match_condition("false", "true", "boolean")
 
     def test_boolean_different(self):
-        from Backend.bridge.engine_bridge import _match_condition
-        assert _match_condition("false", "!= true")
+        assert _match_condition("!= true", "false", "boolean")
 
 
 # ─────────────────────────────────────────────

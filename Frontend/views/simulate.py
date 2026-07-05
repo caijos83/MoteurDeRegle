@@ -3,48 +3,11 @@ import streamlit as st
 import requests
 from html import escape as _esc
 from utils.api import api_get, policy_badge_html, fmt_output_html, API_BASE
-
-
-# ── Évaluateur de règles côté client ──────────────────────────────────────────
-
-def _matches(condition: str, value, col_type: str) -> bool:
-    if not condition or str(condition).strip() in ("", "—"):
-        return True
-    c = str(condition).strip()
-    if col_type == "boolean":
-        return str(value).lower() == c.lower()
-    if col_type == "number":
-        try:
-            num = float(str(value))
-            if c.startswith("["):
-                semi = c.endswith("[")
-                inner = c.strip("[]")
-                lo_s, hi_s = inner.split("..")
-                lo, hi = float(lo_s), float(hi_s.rstrip("["))
-                return lo <= num and (num < hi if semi else num <= hi)
-            for op, fn in [
-                (">=", lambda x: num >= x), ("<=", lambda x: num <= x),
-                (">",  lambda x: num >  x), ("<",  lambda x: num <  x),
-                ("!=", lambda x: num != x), ("=",  lambda x: num == x),
-            ]:
-                if c.startswith(op):
-                    return fn(float(c[len(op):].strip()))
-            return num == float(c)
-        except Exception:
-            return False
-    if col_type == "text":
-        if c.startswith('["'):
-            items = [i.strip().strip('"') for i in c.strip("[]").split(",")]
-            return str(value) in items
-        return str(value).lower() == c.lower()
-    return False
+from Backend.bridge.dmn_matcher import rule_matches as _rule_matches_fn
 
 
 def _rule_matches(rule: dict, inputs: dict, col_types: dict) -> bool:
-    for col_name, cond in rule.get("conditions", {}).items():
-        if not _matches(cond, inputs.get(col_name, ""), col_types.get(col_name, "text")):
-            return False
-    return True
+    return _rule_matches_fn(rule, inputs, col_types)
 
 
 def _output_num(rule: dict, out_col: str) -> float | None:
