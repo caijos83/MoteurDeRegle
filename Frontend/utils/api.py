@@ -4,7 +4,22 @@ from html import escape as _html_escape
 from dotenv import load_dotenv
 
 load_dotenv()
-API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
+
+
+def _get_api_base() -> str:
+    # 1. Variable d'environnement (local .env ou Render)
+    url = os.getenv("API_BASE_URL")
+    if url:
+        return url
+    # 2. Streamlit Cloud secrets
+    try:
+        import streamlit as st
+        return st.secrets.get("API_BASE_URL", "http://localhost:8000/api/v1")
+    except Exception:
+        return "http://localhost:8000/api/v1"
+
+
+API_BASE = _get_api_base()
 
 TYPE_OPTIONS   = ["Nombre", "Texte", "Oui / Non"]
 TYPE_TO_API    = {"Nombre": "number", "Texte": "text", "Oui / Non": "boolean"}
