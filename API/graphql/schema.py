@@ -24,6 +24,8 @@ class DecisionTable:
     hit_policy: str
     columns: strawberry.scalars.JSON
     rules: strawberry.scalars.JSON
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 @strawberry.type
@@ -31,6 +33,7 @@ class EvaluateResult:
     result: Optional[strawberry.scalars.JSON]
     hit_policy: str
     matched_rules: Optional[int] = None
+    engine: Optional[str] = None
 
 
 @strawberry.input
