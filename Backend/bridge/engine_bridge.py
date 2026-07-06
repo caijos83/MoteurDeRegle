@@ -156,7 +156,11 @@ def _evaluate_python_fallback(table: dict, inputs: dict) -> dict:
         for rule in rules:
             if _rule_matches(rule["conditions"], inputs, col_types):
                 for col in output_cols:
-                    total += float(rule["output"].get(col, 0))
+                    raw = rule["output"].get(col, "")
+                    try:
+                        total += float(str(raw).strip() or "0")
+                    except (ValueError, TypeError):
+                        pass
                 matched.append(rule)
         return {"result": total, "matched_rules": len(matched), "hit_policy": "COLLECT SUM"}
 

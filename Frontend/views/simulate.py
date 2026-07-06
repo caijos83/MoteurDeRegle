@@ -110,7 +110,8 @@ def render(table_id: str | None = None) -> None:
 
                 # Valeur d'affichage
                 if isinstance(api_result, dict):
-                    display_val = str(api_result.get(out_key, "—"))
+                    raw_val = api_result.get(out_key, "")
+                    display_val = str(raw_val).strip() if str(raw_val).strip() else None
                 elif api_result is not None:
                     display_val = str(api_result)
                 else:
@@ -120,7 +121,7 @@ def render(table_id: str | None = None) -> None:
 
                 # ── Carte résultat ────────────────────────────────────────────
                 if display_val is None:
-                    st.warning("Aucune règle ne correspond.")
+                    st.warning("Aucune règle ne correspond, ou la valeur de sortie n'a pas été enregistrée.")
                 else:
                     try:
                         num = float(display_val.replace("+", ""))

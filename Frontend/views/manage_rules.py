@@ -314,6 +314,7 @@ def render(table_id: str | None = None) -> None:
     # ── Sauvegarde de toutes les règles ───────────────────────────────────────
     if save_clicked:
         updated_rules = []
+        empty_output_rows = []
         for idx, rule in enumerate(rules, start=1):
             conditions = {}
             for c in input_cols:
@@ -322,9 +323,15 @@ def render(table_id: str | None = None) -> None:
                     conditions[c["name"]] = val
             outputs = {}
             for c in output_cols:
-                val = str(st.session_state.get(f"out_{idx}_{c['name']}", ""))
-                outputs[c["name"]] = val
+                val = str(st.session_state.get(f"out_{idx}_{c['name']}", "")).strip()
+                if val:
+                    outputs[c["name"]] = val
+                else:
+                    empty_output_rows.append(idx)
             updated_rules.append({"conditions": conditions, "output": outputs})
+        if empty_output_rows:
+            rows_str = ", ".join(str(r) for r in sorted(set(empty_output_rows)))
+            st.warning(f"⚠️ Règle(s) {rows_str} : valeur de sortie vide — la simulation ne retournera aucun résultat pour ces règles.")
         _save_rules(table["id"], updated_rules)
         st.toast("Table à jour !", icon="✅")
 
