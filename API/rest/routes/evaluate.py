@@ -19,6 +19,12 @@ class EvaluateRequest(BaseModel):
 
 @router.post("/tables/{table_id}/evaluate")
 def evaluate_table(table_id: str, body: EvaluateRequest):
+    """
+    Évalue des inputs contre une table de décision et retourne le résultat du moteur.
+    Entrées : table_id — UUID de la table, body.inputs — valeurs d'entrée.
+    Retour : dict {"result", "engine", "hit_policy", "matched_rules" (COLLECT SUM)}.
+    Erreurs : 404 table introuvable, 422 colonnes d'input manquantes.
+    """
     table = db.get_table(table_id)
     if not table:
         raise HTTPException(status_code=404, detail="Table introuvable")

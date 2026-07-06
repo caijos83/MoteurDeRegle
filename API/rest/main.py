@@ -35,4 +35,5 @@ app.include_router(graphql_app, prefix="/graphql")
 
 @app.get("/health")
 def health():
+    """Liveness check — retourne {"status": "ok"} si le serveur est démarré."""
     return {"status": "ok", "engine": "DMN Light"}

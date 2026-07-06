@@ -1,3 +1,8 @@
+"""
+Vue création d'une nouvelle table de décision — formulaire complet avec
+gestion des colonnes, des règles, import/export JSON et enregistrement via API.
+"""
+
 import json
 import streamlit as st
 import requests
@@ -144,6 +149,7 @@ label[data-testid="stWidgetLabel"] p {
 
 
 def _init() -> None:
+    """Initialise les clés de session_state utilisées par cette page si elles sont absentes."""
     for k, v in [
         ("nt_columns", []), ("nt_rules", []), ("nt_show_add", False),
         ("nt_show_import", False), ("nt_upload_key", 0),
@@ -153,6 +159,12 @@ def _init() -> None:
 
 
 def _cell(content, bg, h="44px", align="left", bb=True):
+    """
+    Retourne le HTML d'une cellule de tableau de règles.
+    Entrées : content — contenu HTML, bg — couleur de fond, h — hauteur,
+              align — alignement (left/center), bb — afficher la bordure basse.
+    Retour : chaîne HTML de la cellule.
+    """
     border_b = "border-bottom:1px solid #e2e8f0;" if bb else ""
     border_r = "border-right:1px solid #e2e8f0;"
     return (
@@ -165,6 +177,11 @@ def _cell(content, bg, h="44px", align="left", bb=True):
 
 
 def render() -> None:
+    """
+    Affiche le formulaire de création de table : informations générales, colonnes,
+    tableau de règles éditables, import/export JSON et enregistrement via POST /tables.
+    Aucun paramètre, aucun retour.
+    """
     _init()
     st.markdown(_PAGE_CSS, unsafe_allow_html=True)
 

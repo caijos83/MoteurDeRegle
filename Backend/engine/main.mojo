@@ -47,6 +47,10 @@ fn split_owned(s: String, sep: String) -> List[String]:
 
 
 fn split_owned_max(s: String, sep: String, maxsplit: Int) -> List[String]:
+    """
+    Comme split_owned mais limite le nombre de découpes.
+    Utilisé pour parser `col=valeur` : maxsplit=1 évite de couper sur un `=` dans la valeur.
+    """
     var raw = s.split(sep, maxsplit)
     var result = List[String]()
     for i in range(len(raw)):
