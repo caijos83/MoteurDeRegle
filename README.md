@@ -7,13 +7,11 @@
 
 ## Équipe
 
-| Nom | Rôle |
-|---|---|
-| AKLI Cylia | Développeuse fullstack, intégration API & Frontend |
-| BENMAMAS Melissa | Développeuse backend, moteur Mojo |
-| CAI Joséphine | Développeuse backend, TerminusDB & persistance |
-| CAPRICORNE Séfora | Développeuse frontend, IHM Streamlit |
-| TIEN Marina | Développeuse backend, tests & MCP Server |
+- AKLI Cylia
+- BENMAMAS Melissa
+- CAI Joséphine
+- CAPRICORNE Séfora
+- TIEN Marina
 
 ---
 
@@ -223,27 +221,27 @@ docker build -t dmn-mojo-engine Backend/engine
 Le bridge Python (`Backend/bridge/engine_bridge.py`) essaie les moteurs dans cet ordre :
 
 1. **Binaire natif** `Backend/engine/evaluator` — le plus rapide
-2. **Image Docker** `dmn-mojo-engine` — portable (Windows/macOS/Linux)
-3. **Fallback Python pur** — toujours disponible, utilisé en dev et tests
+2. **Image Docker** `dmn-mojo-engine` — portable (Windows, macOS, Linux)
+3. **Fallback Python pur** — toujours disponible, utilisé en développement et tests
 
 ---
 
 ## Fichiers clés à lire en priorité
 
-| Objectif | Fichier à lire |
+| Objectif | Fichier |
 |---|---|
 | Comprendre le routing de l'IHM | `Frontend/app.py` |
 | Comprendre l'évaluation DMN | `Backend/bridge/dmn_matcher.py` |
 | Comprendre le pont Mojo/Python | `Backend/bridge/engine_bridge.py` |
-| Voir le schéma de base de données | `API/rest/db/terminusdb.py` |
+| Voir la couche base de données | `API/rest/db/terminusdb.py` |
 | Voir les endpoints REST | `API/rest/routes/tables.py` + `evaluate.py` |
-| Comprendre les décisions d'archi | `docs/ADR/` (6 fichiers) |
+| Comprendre les décisions d'archi | `docs/ADR/` |
 
 ---
 
 ## API REST
 
-Documentation interactive Swagger : **http://localhost:8000/docs**
+Documentation interactive Swagger : **http://localhost:8000/docs**  
 GraphQL playground : **http://localhost:8000/graphql**
 
 | Méthode | Endpoint | Description |
@@ -334,4 +332,4 @@ Voir `API/mcp/README.md` pour la configuration Claude Desktop.
 - **API** → [Render](https://render.com) (free tier) — configuration dans `render.yaml`
 - **Frontend** → [Streamlit Community Cloud](https://share.streamlit.io) — fichier `Frontend/app.py`, secret `API_BASE_URL`
 
-Voir `.streamlit/secrets.toml.example` pour la configuration.
+Voir `.streamlit/secrets.toml.example` pour la configuration des secrets.
