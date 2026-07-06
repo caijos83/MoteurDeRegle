@@ -158,6 +158,60 @@ def _init() -> None:
             st.session_state[k] = v
 
 
+def _show_success(table_name: str, table_id: str) -> None:
+    """
+    Affiche la carte de confirmation centrée après enregistrement d'une table.
+    Entrées : table_name — nom affiché, table_id — UUID pour le bouton 'Voir la table'.
+    """
+    from html import escape as _e
+    st.markdown("<div style='height:80px'></div>", unsafe_allow_html=True)
+    _, center, _ = st.columns([1, 2, 1])
+    with center:
+        st.markdown(
+            f"""
+            <div style="
+                text-align:center;
+                padding:48px 36px 36px;
+                background:#f0fdf4;
+                border:2px solid #86efac;
+                border-radius:18px;
+                box-shadow:0 4px 24px rgba(0,0,0,.07);
+            ">
+                <div style="
+                    display:inline-flex; align-items:center; justify-content:center;
+                    width:64px; height:64px; border-radius:50%;
+                    background:#16a34a; margin-bottom:20px;
+                ">
+                    <span style="color:#fff; font-size:2rem; font-weight:700; line-height:1;">✓</span>
+                </div>
+                <h2 style="color:#15803d; font-size:1.6rem; font-weight:800;
+                            margin:0 0 8px; letter-spacing:-.01em;">
+                    Table enregistrée !
+                </h2>
+                <p style="color:#4b5563; font-size:.95rem; margin:0 0 4px;">
+                    La table <strong>{_e(table_name)}</strong>
+                </p>
+                <p style="color:#6b7280; font-size:.85rem; margin:0;">
+                    a été créée avec succès et est prête à l'emploi.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button("✎  Voir la table", type="primary", use_container_width=True):
+                st.session_state.pop("nt_saved", None)
+                st.query_params["page"] = "detail"
+                st.query_params["table_id"] = table_id
+                st.rerun()
+        with b2:
+            if st.button("＋  Créer une autre", use_container_width=True):
+                st.session_state.pop("nt_saved", None)
+                st.rerun()
+
+
 def _cell(content, bg, h="44px", align="left", bb=True):
     """
     Retourne le HTML d'une cellule de tableau de règles.
@@ -183,6 +237,14 @@ def render() -> None:
     Aucun paramètre, aucun retour.
     """
     _init()
+
+    # ── Confirmation après enregistrement réussi ─────────────────────────────
+    if st.session_state.get("nt_saved"):
+        saved = st.session_state["nt_saved"]
+        st.markdown(_PAGE_CSS, unsafe_allow_html=True)
+        _show_success(saved["name"], saved["id"])
+        return
+
     st.markdown(_PAGE_CSS, unsafe_allow_html=True)
 
     # ── Breadcrumb ───────────────────────────────────────────────────────────
@@ -546,8 +608,8 @@ def render() -> None:
                                      json={"rules": nt_rules}, timeout=5)
                     for k in ("nt_columns", "nt_rules", "nt_show_add"):
                         st.session_state.pop(k, None)
-                    st.query_params["page"] = "detail"
-                    st.query_params["table_id"] = tid
+                    # Affiche la confirmation centrée avant de rediriger
+                    st.session_state["nt_saved"] = {"id": tid, "name": name_v}
                     st.rerun()
                 else:
                     st.error(f"Erreur API ({r.status_code}) : {r.text}")
