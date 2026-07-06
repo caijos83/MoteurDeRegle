@@ -39,6 +39,7 @@ _SCHEMA_DOC = {
 
 class TerminusDBClient:
     def __init__(self):
+        """Initialise la connexion et active le fallback JSON si TerminusDB est inaccessible."""
         self._client = None
         self._use_fallback = False
         self._connect()
@@ -76,6 +77,11 @@ class TerminusDBClient:
 
     @staticmethod
     def _to_terminus_doc(table: dict) -> dict:
+        """
+        Convertit un dict table interne en document TerminusDB (@type, @id inclus).
+        Entrée : table — dict avec id, name, hit_policy, columns, rules.
+        Retour : dict document TerminusDB prêt à être inséré ou remplacé.
+        """
         doc = {
             "@type": "DecisionTable",
             "@id": f"DecisionTable/{table['id']}",
@@ -92,6 +98,11 @@ class TerminusDBClient:
 
     @staticmethod
     def _from_terminus_doc(doc: dict) -> dict:
+        """
+        Convertit un document TerminusDB en dict table interne (sans @type/@id).
+        Entrée : doc — document brut retourné par le client TerminusDB.
+        Retour : dict table avec le champ "id" (UUID extrait du @id).
+        """
         raw_id = doc.get("@id", "")
         table_id = raw_id.removeprefix("DecisionTable/")
         return {
@@ -107,6 +118,10 @@ class TerminusDBClient:
     # ── Fallback helpers ───────────────────────────────────────────────────────
 
     def _load_with_timestamps(self, path: Path) -> dict:
+        """
+        Lit un fichier JSON du fallback et ajoute created_at/updated_at depuis le mtime si absents.
+        Entrée : path — chemin vers le fichier JSON. Retour : dict de la table.
+        """
         data = json.loads(path.read_text(encoding="utf-8-sig", errors="replace"))
         if "created_at" not in data or "updated_at" not in data:
             mtime = datetime.datetime.fromtimestamp(
@@ -119,6 +134,7 @@ class TerminusDBClient:
     # ── API publique ───────────────────────────────────────────────────────────
 
     def list_tables(self) -> list[dict]:
+        """Retourne toutes les tables (TerminusDB ou fallback JSON)."""
         if self._use_fallback:
             tables = []
             for f in _FALLBACK_DIR.glob("*.json"):
@@ -131,6 +147,10 @@ class TerminusDBClient:
         return [self._from_terminus_doc(d) for d in docs]
 
     def get_table(self, table_id: str) -> dict | None:
+        """
+        Retourne une table par son UUID. Valide le format UUID avant toute requête.
+        Entrée : table_id — UUID v4. Retour : dict de la table ou None si introuvable.
+        """
         if not _UUID_RE.match(table_id):
             return None
         if self._use_fallback:
@@ -145,6 +165,12 @@ class TerminusDBClient:
             return None
 
     def save_table(self, table: dict):
+        """
+        Crée ou met à jour une table (upsert).
+        TerminusDB : get → replace si existe, insert sinon.
+        Fallback : écrit le fichier JSON {uuid}.json dans .data/.
+        Entrée : table — dict complet avec champ "id" (UUID valide).
+        """
         table_id = table.get("id", "")
         if not _UUID_RE.match(table_id):
             return
@@ -166,6 +192,11 @@ class TerminusDBClient:
             self._client.insert_document(doc)
 
     def delete_table(self, table_id: str):
+        """
+        Supprime une table par son UUID.
+        Entrée : table_id — UUID v4 valide.
+        Ne fait rien si l'UUID est invalide (protection contre les injections de chemin).
+        """
         if not _UUID_RE.match(table_id):
             return
         if self._use_fallback:

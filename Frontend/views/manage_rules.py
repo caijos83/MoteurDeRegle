@@ -1,3 +1,8 @@
+"""
+Vue édition des règles d'une table — tableau de règles entièrement éditable
+avec ajout/suppression de colonnes et de règles, import/export JSON et sauvegarde via API.
+"""
+
 import json
 import streamlit as st
 import requests
@@ -65,6 +70,11 @@ _TABLE_CSS = """
 
 
 def _cell(content: str, bg: str, height: str = "38px", align: str = "left") -> str:
+    """
+    Retourne le HTML d'une cellule de tableau (en-tête ou données).
+    Entrées : content — HTML interne, bg — couleur de fond, height, align.
+    Retour : chaîne HTML de la cellule.
+    """
     return (
         f'<div style="background:{bg}; height:{height}; padding:0 12px;'
         f' display:flex; align-items:center; text-align:{align}; box-sizing:border-box;">'
@@ -73,10 +83,19 @@ def _cell(content: str, bg: str, height: str = "38px", align: str = "left") -> s
 
 
 def _save_rules(table_id: str, rules: list) -> None:
+    """
+    Envoie la liste de règles à l'API via PUT /tables/{table_id}.
+    Entrées : table_id — UUID de la table, rules — liste de règles à persister.
+    """
     requests.put(f"{API_BASE}/tables/{table_id}", json={"rules": rules}, timeout=5)
 
 
 def _reset_edit_state(table_id: str) -> None:
+    """
+    Vide les clés cond_* et out_* du session_state quand on change de table,
+    évitant de mélanger les saisies d'une table à l'autre.
+    Entrée : table_id — UUID de la table actuellement sélectionnée.
+    """
     if st.session_state.get("_current_table_id") != table_id:
         for key in list(st.session_state.keys()):
             if key.startswith("cond_") or key.startswith("out_"):
@@ -86,12 +105,18 @@ def _reset_edit_state(table_id: str) -> None:
 
 
 def _init_state() -> None:
+    """Initialise les clés de session_state propres à cette page si elles sont absentes."""
     for k, v in [("mr_show_import", False), ("mr_upload_key", 0)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
 
 def _add_column_popover(table: dict, role: str, key_prefix: str) -> None:
+    """
+    Affiche un popover d'ajout de colonne et envoie le PUT si l'utilisateur confirme.
+    Entrées : table — dict de la table courante, role — "input" ou "output",
+              key_prefix — préfixe unique pour les clés Streamlit.
+    """
     label = "Nouvelle entrée (IN)" if role == "input" else "Nouvelle sortie (OUT)"
     with st.popover("➕", use_container_width=True, help=f"Ajouter une colonne {'IN' if role == 'input' else 'OUT'}"):
         st.markdown(f"**{label}**")
@@ -122,6 +147,11 @@ def _add_column_popover(table: dict, role: str, key_prefix: str) -> None:
 
 
 def render(table_id: str | None = None) -> None:
+    """
+    Affiche la page d'édition des règles : tableau éditable, ajout/suppression de colonnes,
+    import/export JSON, sauvegarde via PUT /tables/{id}.
+    Entrée : table_id — UUID présélectionné (ou None pour le premier de la liste).
+    """
     _init_state()
     tables = api_get("/tables") or []
     if not tables:

@@ -1,3 +1,7 @@
+"""
+Page d'accueil DMNLight — vue hero avec statistiques et guide de démarrage rapide.
+"""
+
 import streamlit as st
 from utils.api import api_get
 
@@ -86,6 +90,10 @@ div.stButton > button[kind="primary"]:hover {
 
 
 def render() -> None:
+    """
+    Affiche la page d'accueil : hero, statistiques globales (nb tables, règles,
+    hit policies) et guide en 3 étapes. Aucun paramètre, aucun retour.
+    """
     tables = api_get("/tables") or []
     nb_tables = len(tables)
     nb_first  = sum(1 for t in tables if t.get("hit_policy") == "FIRST")

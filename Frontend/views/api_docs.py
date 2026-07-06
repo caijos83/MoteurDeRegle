@@ -7,6 +7,11 @@ from utils.api import api_get, API_BASE
 
 
 def render() -> None:
+    """
+    Affiche la documentation des trois interfaces API : REST (table des endpoints),
+    GraphQL (exemples query/mutation) et MCP (liste des outils IA exposés).
+    Aucun paramètre, aucun retour.
+    """
     st.markdown("## Interface API")
     st.markdown(
         '<p style="color:#6b7280;font-size:.95rem;margin-top:-8px;margin-bottom:24px;">'

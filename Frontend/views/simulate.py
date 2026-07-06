@@ -1,3 +1,8 @@
+"""
+Vue simulation — formulaire de saisie des inputs et affichage du résultat d'évaluation
+avec détail règle par règle (match/pas de match) et moteur utilisé.
+"""
+
 import time
 import streamlit as st
 import requests
@@ -7,10 +12,20 @@ from Backend.bridge.dmn_matcher import rule_matches as _rule_matches_fn
 
 
 def _rule_matches(rule: dict, inputs: dict, col_types: dict) -> bool:
+    """
+    Délègue à dmn_matcher.rule_matches pour colorier les lignes de règles côté IHM.
+    Entrées : rule — dict de la règle, inputs — valeurs saisies, col_types — types par colonne.
+    Retour : True si toutes les conditions de la règle sont satisfaites.
+    """
     return _rule_matches_fn(rule, inputs, col_types)
 
 
 def _output_num(rule: dict, out_col: str) -> float | None:
+    """
+    Extrait la valeur numérique de sortie d'une règle pour l'affichage du score.
+    Entrées : rule — dict de la règle, out_col — nom de la colonne de sortie.
+    Retour : float si la valeur est numérique, None sinon.
+    """
     try:
         return float(str(rule["output"].get(out_col, "")).replace("+", ""))
     except Exception:
@@ -23,6 +38,11 @@ _TYPE_FR = {"number": "numérique", "text": "texte", "boolean": "booléen"}
 
 
 def render(table_id: str | None = None) -> None:
+    """
+    Affiche la page de simulation : sélection de la table, saisie des inputs,
+    appel à POST /evaluate et affichage du résultat + détail des règles évaluées.
+    Entrée : table_id — UUID présélectionné (ou None pour le premier de la liste).
+    """
     tables = api_get("/tables") or []
     if not tables:
         st.info("Aucune table disponible.")

@@ -33,6 +33,7 @@ app = Server("dmn-light-engine")
 
 @app.list_tools()
 async def list_tools() -> list[types.Tool]:
+    """Déclare les 8 outils DMN exposés aux agents MCP (schémas JSON inclus)."""
     return [
         types.Tool(
             name="dmn_get_column_types",
@@ -145,11 +146,18 @@ async def list_tools() -> list[types.Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
+    """
+    Dispatch des appels d'outils MCP vers les opérations DMN correspondantes.
+    Entrées : name — nom de l'outil, arguments — paramètres de l'appel.
+    Retour : liste avec un TextContent JSON (résultat ou {"error": ...}).
+    """
 
     def ok(data) -> list[types.TextContent]:
+        """Sérialise data en JSON et le retourne comme réponse MCP valide."""
         return [types.TextContent(type="text", text=json.dumps(data, ensure_ascii=False, indent=2))]
 
     def err(msg: str) -> list[types.TextContent]:
+        """Retourne une réponse MCP d'erreur avec le message donné."""
         return [types.TextContent(type="text", text=json.dumps({"error": msg}))]
 
     if name == "dmn_get_column_types":
@@ -220,6 +228,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
 # ------------------------------------------------------------------
 
 async def main():
+    """Point d'entrée asyncio — démarre le serveur MCP en mode stdio."""
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 

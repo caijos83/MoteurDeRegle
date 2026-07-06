@@ -5,10 +5,6 @@ Teste la validation Pydantic des modèles Column, Rule, TableCreate.
 import pytest
 from pydantic import ValidationError
 
-# On importe directement les modèles Pydantic du parser
-import sys
-sys.path.insert(0, "/home/cerinekerrar01/projet_ppd/MoteurDeRegle")
-
 from API.rest.routes.tables import Column, Rule, TableCreate
 
 

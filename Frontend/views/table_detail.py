@@ -1,3 +1,8 @@
+"""
+Vue détail d'une table de décision — affiche les métadonnées, les règles,
+le JSON brut et la zone de suppression avec confirmation.
+"""
+
 import json
 import streamlit as st
 import requests
@@ -6,6 +11,11 @@ from utils.api import api_get, policy_badge_html, fmt_condition, fmt_output_html
 
 
 def _rules_table_html(table: dict) -> str:
+    """
+    Génère le HTML d'un tableau de règles lisible (colonnes IN en vert foncé, OUT en vert).
+    Entrée : table — dict complet de la table (colonnes + règles).
+    Retour : chaîne HTML sécurisée (valeurs échappées via fmt_condition/fmt_output_html).
+    """
     input_cols  = [c for c in table["columns"] if c["role"] == "input"]
     output_cols = [c for c in table["columns"] if c["role"] == "output"]
     rules       = table.get("rules", [])
@@ -43,6 +53,11 @@ def _rules_table_html(table: dict) -> str:
 
 
 def render(table_id: str) -> None:
+    """
+    Affiche la page de détail d'une table : stats, tableau de règles (onglet),
+    JSON brut et zone de suppression.
+    Entrée : table_id — UUID de la table à afficher.
+    """
     table = api_get(f"/tables/{table_id}")
     if not table:
         st.error("Table introuvable.")

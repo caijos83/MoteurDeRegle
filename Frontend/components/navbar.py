@@ -1,3 +1,8 @@
+"""
+Barre de navigation fixe de l'IHM DMNLight.
+Affiche le logo, les onglets principaux et le fil d'Ariane contextuel.
+"""
+
 import streamlit as st
 
 _MAIN_TABS = [("Tables", "tables"), ("API", "api")]
@@ -11,6 +16,11 @@ _CONTEXT_LABEL = {
 
 
 def render_navbar(current_page: str) -> None:
+    """
+    Affiche la navbar en haut de page (position:fixed).
+    Entrée : current_page — clé de la page active (ex. "tables", "detail").
+    Le fil d'Ariane contextuel apparaît pour les pages de détail/édition.
+    """
     context = _CONTEXT_LABEL.get(current_page)
 
     if context:

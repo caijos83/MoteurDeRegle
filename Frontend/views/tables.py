@@ -1,3 +1,8 @@
+"""
+Vue liste des tables de décision — affiche toutes les tables avec filtre,
+sélection multiple, export JSON groupé et suppression avec confirmation.
+"""
+
 import json
 import streamlit as st
 import requests
@@ -8,6 +13,11 @@ _COL_WIDTHS = [0.35, 3.65, 2, 1, 1, 2, 2]
 
 
 def render() -> None:
+    """
+    Affiche la liste des tables : filtre par hit policy, sélection par checkbox,
+    export/suppression groupée, boutons d'action par ligne (détail, simulation, suppression).
+    Aucun paramètre, aucun retour.
+    """
     import time
     result = api_get("/tables")
     if result is None:
@@ -85,6 +95,7 @@ def render() -> None:
 
     # ── Sélection globale / filtre ───────────────────────────────────────────────
     def _toggle_all():
+        """Coche ou décoche toutes les tables quand la checkbox globale change."""
         val = st.session_state["select_all"]
         for t in tables:
             st.session_state[f"chk_{t['id']}"] = val

@@ -54,10 +54,12 @@ class CreateTableInput:
 class Query:
     @strawberry.field
     def tables(self) -> list[DecisionTable]:
+        """Retourne toutes les tables de décision."""
         return [DecisionTable(**t) for t in db.list_tables()]
 
     @strawberry.field
     def table(self, id: str) -> Optional[DecisionTable]:
+        """Retourne une table par son UUID, ou None si introuvable."""
         t = db.get_table(id)
         if t:
             return DecisionTable(**t)
@@ -65,6 +67,7 @@ class Query:
 
     @strawberry.field
     def column_types(self) -> list[str]:
+        """Retourne les types de colonnes supportés : number, text, boolean."""
         return ["number", "text", "boolean"]
 
 
@@ -72,6 +75,7 @@ class Query:
 class Mutation:
     @strawberry.mutation
     def create_table(self, input: CreateTableInput) -> DecisionTable:
+        """Crée une table de décision. Entrée : nom, hit_policy, colonnes."""
         import uuid
         table = {
             "id": str(uuid.uuid4()),
@@ -85,6 +89,7 @@ class Mutation:
 
     @strawberry.mutation
     def delete_table(self, id: str) -> bool:
+        """Supprime une table par son UUID. Retour : True si supprimée, False si introuvable."""
         if not db.get_table(id):
             return False
         db.delete_table(id)
@@ -92,6 +97,11 @@ class Mutation:
 
     @strawberry.mutation
     def evaluate_table(self, table_id: str, inputs_json: str) -> EvaluateResult:
+        """
+        Évalue des inputs JSON contre une table.
+        Entrées : table_id — UUID, inputs_json — objet JSON sérialisé {col: valeur}.
+        Retour : EvaluateResult avec result, hit_policy, matched_rules, engine.
+        """
         import json
         table = db.get_table(table_id)
         if not table:

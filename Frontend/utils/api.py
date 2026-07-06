@@ -1,3 +1,8 @@
+"""
+Client HTTP et utilitaires partagés pour le frontend Streamlit.
+Fournit : URL de base de l'API, helpers de formatage HTML, builder de condition DMN.
+"""
+
 import os
 import requests
 from html import escape as _html_escape
@@ -7,6 +12,13 @@ load_dotenv()
 
 
 def _get_api_base() -> str:
+    """
+    Résout l'URL de base de l'API REST selon la priorité :
+    1. Variable d'environnement API_BASE_URL (local .env ou Render).
+    2. Secret Streamlit Cloud (st.secrets).
+    3. Valeur par défaut localhost:8000.
+    Retour : URL sans slash final.
+    """
     # 1. Variable d'environnement (local .env ou Render)
     url = os.getenv("API_BASE_URL")
     if url:
@@ -39,6 +51,10 @@ OP_TO_SYNTAX = {">": ">", "<": "<", "≥": ">=", "≤": "<=", "=": "=", "≠": "
 
 
 def api_get(path):
+    """
+    GET vers l'API REST. Entrée : path relatif (ex. "/tables").
+    Retour : corps JSON parsé, ou None si l'API est inaccessible.
+    """
     try:
         r = requests.get(f"{API_BASE}{path}", timeout=5)
         return r.json() if r.ok else None
@@ -87,6 +103,11 @@ def fmt_output_html(val: str) -> str:
 
 
 def policy_badge_html(policy: str) -> str:
+    """
+    Génère le badge HTML coloré d'une hit policy.
+    Entrée : policy — "FIRST" ou "COLLECT SUM".
+    Retour : chaîne HTML du badge (fond vert clair).
+    """
     if policy == "FIRST":
         return (
             '<span style="background:#d4ece0; color:#1b3a2f; border-radius:20px;'
@@ -99,6 +120,11 @@ def policy_badge_html(policy: str) -> str:
 
 
 def score_range(table: dict) -> str:
+    """
+    Calcule la plage de scores possibles pour une table COLLECT SUM.
+    Entrée : table — dict complet de la table.
+    Retour : chaîne "min→+max", ou "—" si non applicable.
+    """
     if table.get("hit_policy") != "COLLECT SUM":
         return "—"
     out_cols = [c for c in table.get("columns", []) if c["role"] == "output" and c["type"] == "number"]
@@ -118,6 +144,12 @@ def score_range(table: dict) -> str:
 
 
 def build_condition(col_type: str, operator: str, value, value2="") -> str:
+    """
+    Convertit les choix UI (opérateur + valeur(s)) en expression DMN textuelle.
+    Entrées : col_type — "number"/"text"/"boolean", operator — libellé UI,
+              value — valeur principale, value2 — borne haute pour les intervalles.
+    Retour : expression DMN (ex. ">= 18", "[0..100]", '["A","B"]', "true") ou "".
+    """
     if not operator or operator == "— (ignorer)":
         return ""
     if col_type == "number":
