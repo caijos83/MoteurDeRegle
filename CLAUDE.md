@@ -2,7 +2,7 @@
 
 Projet académique M1 MIAGE 2025/2026, Université Paris Cité.
 Encadrant : Gilles Pierre POIROT.
-Équipe : AKLI Cylia, BENMAMAS Melissa, CAI Joséphine, CAPRICORNE Séfora, TIEN Marina.
+Équipe : AKLI Cylia, BENMAMAS Melissa, CAI Joséphine, CAPRICORNE Séfora, KERRAR Cérine, TIEN Marina.
 
 ## Architecture
 
